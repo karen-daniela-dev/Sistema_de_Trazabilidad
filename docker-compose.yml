@@ -1,0 +1,74 @@
+version: "3.9"
+
+services:
+  # ── Base de datos ────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: empleabilidad_db
+    environment:
+      POSTGRES_USER: empleabilidad_user
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: empleabilidad_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U empleabilidad_user -d empleabilidad_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── BD de test (solo dev) ─────────────────────────────────────────────────
+  db_test:
+    image: postgres:16-alpine
+    container_name: empleabilidad_db_test
+    environment:
+      POSTGRES_USER: empleabilidad_user
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: empleabilidad_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data  # en memoria — se borra al detener
+    profiles:
+      - test
+    restart: "no"
+
+  # ── Backend FastAPI ───────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: empleabilidad_backend
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  # ── Frontend Streamlit ────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: empleabilidad_frontend
+    env_file: .env
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app/frontend
+    command: streamlit run frontend/app.py --server.port 8501 --server.address 0.0.0.0
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
