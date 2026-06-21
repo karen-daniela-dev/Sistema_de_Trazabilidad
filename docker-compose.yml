@@ -1,10 +1,11 @@
 version: "3.9"
 
 services:
-  # ── Base de datos ────────────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
     container_name: empleabilidad_db
+    networks:
+      - empleabilidad_net
     environment:
       POSTGRES_USER: empleabilidad_user
       POSTGRES_PASSWORD: secret
@@ -21,10 +22,11 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ── BD de test (solo dev) ─────────────────────────────────────────────────
   db_test:
     image: postgres:16-alpine
     container_name: empleabilidad_db_test
+    networks:
+      - empleabilidad_net
     environment:
       POSTGRES_USER: empleabilidad_user
       POSTGRES_PASSWORD: secret
@@ -32,17 +34,18 @@ services:
     ports:
       - "5433:5432"
     tmpfs:
-      - /var/lib/postgresql/data  # en memoria — se borra al detener
+      - /var/lib/postgresql/data
     profiles:
       - test
     restart: "no"
 
-  # ── Backend FastAPI ───────────────────────────────────────────────────────────
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     container_name: empleabilidad_backend
+    networks:
+      - empleabilidad_net
     env_file: .env
     ports:
       - "8000:8000"
@@ -54,12 +57,13 @@ services:
     command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
 
-  # ── Frontend Streamlit ────────────────────────────────────────────────────────
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
     container_name: empleabilidad_frontend
+    networks:
+      - empleabilidad_net
     env_file: .env
     ports:
       - "8501:8501"
@@ -69,6 +73,10 @@ services:
       - ./frontend:/app/frontend
     command: streamlit run frontend/app.py --server.port 8501 --server.address 0.0.0.0
     restart: unless-stopped
+
+networks:
+  empleabilidad_net:
+    driver: bridge
 
 volumes:
   postgres_data:
