@@ -83,6 +83,8 @@ def crear_tutor(email: str):
 
 def get_mi_perfil():
     r = requests.get(f"{API_BASE}/usuarios/perfil/me", headers=_headers(), timeout=TIMEOUT)
+    if r.status_code == 404:
+        return None  # sin perfil aún — no es error
     return _handle_response(r)
 
 
