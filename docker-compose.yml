@@ -72,7 +72,7 @@ services:
     volumes:
       - ./frontend:/app/frontend
       - ./.streamlit:/app/.streamlit 
-    command: streamlit run frontend/app.py --server.port 8501 --server.address 0.0.0.0 --theme.base light --theme.textColor "#1e293b" --theme.backgroundColor "#f8fafc" --theme.secondaryBackgroundColor "#ffffff" --theme.primaryColor "#1a56db"
+    command: streamlit run frontend/app.py --server.port 8501 --server.address 0.0.0.0 --server.fileWatcherType poll 
     restart: unless-stopped
 
 networks:

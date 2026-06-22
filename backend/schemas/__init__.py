@@ -208,16 +208,7 @@ class EntrevistaCreate(BaseModel):
         if self.autoevaluacion is not None and not (1 <= self.autoevaluacion <= 5):
             raise ValueError("autoevaluacion debe estar entre 1 y 5.")
 
-        # Validar subfallas contra las fallas seleccionadas
-        if self.subfallas and self.fallas:
-            valores_validos: set[str] = set()
-            for falla in self.fallas:
-                enum_subfalla = SUBFALLAS_POR_FALLA.get(falla)
-                if enum_subfalla:
-                    valores_validos.update(item.value for item in enum_subfalla)
-            invalidas = [s for s in self.subfallas if s not in valores_validos]
-            if invalidas:
-                raise ValueError(f"Subfallas inválidas para las fallas seleccionadas: {invalidas}")
+        
 
         return self
 
