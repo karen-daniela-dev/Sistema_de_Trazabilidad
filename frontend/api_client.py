@@ -23,19 +23,30 @@ def _handle_response(r: requests.Response):
         st.error("Sesión expirada. Por favor inicia sesión nuevamente.")
         st.stop()
     if r.status_code == 403:
-        st.error("No tienes permisos para realizar esta acción.")
+        try:
+            detail = r.json().get("detail", "Sin permisos.")
+        except Exception:
+            detail = "Sin permisos."
+        st.error(detail)
         return None
     if r.status_code == 422:
-        errores = r.json().get("errores", [])
-        for e in errores:
-            st.error(f"📋 {e.get('campo', '')}: {e.get('mensaje', '')}")
+        try:
+            errores = r.json().get("errores", [])
+            for e in errores:
+                st.error(f"📋 {e.get('campo', '')}: {e.get('mensaje', '')}")
+        except Exception:
+            st.error(f"Error de validación: {r.text}")
         return None
     if not r.ok:
-        detail = r.json().get("detail", "Error desconocido")
+        try:
+            detail = r.json().get("detail", "Error desconocido")
+        except Exception:
+            detail = r.text or f"Error {r.status_code}"
         st.error(f"❌ {detail}")
         return None
-    return r.json() if r.content else True
-
+    if not r.content:
+        return True
+    return r.json()
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 

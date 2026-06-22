@@ -16,6 +16,7 @@ from frontend.components.ui import (
     kpi_card, mostrar_semaforo, panel_alertas, estado_badge
 )
 from frontend.pages.aprendiz.entrevista_form import show_form as entrevista_form
+from frontend.pages.aprendiz.fallas_tab import show as fallas_show
 
 # ── Paleta ────────────────────────────────────────────────────────────────────
 ESTADO_COLOR = {
@@ -511,7 +512,7 @@ def show():
                     st.rerun()
 
     with tab_fallas:
-        _bloque_fallas(entrevistas_por_app)
+        fallas_show(apps, entrevistas_por_app)
 
     with tab_reflexiones:
         _bloque_reflexiones(apps, entrevistas_por_app)
