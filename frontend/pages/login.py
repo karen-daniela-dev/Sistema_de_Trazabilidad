@@ -9,14 +9,10 @@ from frontend import api_client as api
 
 
 def show():
-    st.markdown("""
-    <div style="text-align:center;padding:40px 0 20px">
-        <h1 style="color:#1a56db;font-size:2rem;font-weight:800">
-            🎓 Sistema de Empleabilidad
-        </h1>
-        <p style="color:#64748b">Full Stack Java Bootcamp</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.title("🎓 Sistema de Empleabilidad")
+    st.caption("Full Stack Java Bootcamp")
+    
+  
 
     tab_login, tab_registro = st.tabs(["Iniciar sesión", "Registrarse (Aprendiz)"])
 

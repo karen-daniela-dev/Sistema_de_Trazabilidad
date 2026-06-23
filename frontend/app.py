@@ -22,63 +22,11 @@ st.set_page_config(
 # ── CSS Global ────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    .stApp { background: #f8fafc !important; }
-    .stApp * { color: #1e293b !important; }
-    .block-container { padding-top: 1.5rem; }
-    
-    /* Inputs */
-    .stTextInput > div > div > input {
-        border-radius: 8px;
-        color: #1e293b !important;
-        background: #ffffff !important;
-    }
-    
-    /* Botón primario */
-    .stButton > button {
-        background: #1a56db !important;
-        color: #ffffff !important;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
+    .block-container {
+        padding-top: 1.5rem;
     }
 
-    /* Tabs */
-    .stTabs [data-baseweb="tab"] {
-        font-weight: 500;
-        color: #1e293b !important;
-    }
-
- /* Sidebar */
-    [data-testid="stSidebar"] {
-        background: #1e293b !important;
-    }
-    [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] div,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] button {
-        color: #e2e8f0 !important;
-    }
-    /* Botón sidebar (cerrar sesión) */
-    [data-testid="stSidebar"] button {
-        color: #e2e8f0 !important;
-        border-color: #e2e8f0 !important;
-    }
-    [data-testid="stSidebar"] button:hover {
-        background: #334155 !important;
-        color: #ffffff !important;
-    }
-    
-    /* Botón header (hamburguesa) */
-    button[data-testid="baseButton-header"] {
-        color: #1e293b !important;
-    }
-    button[data-testid="baseButton-header"] svg {
-        fill: #1e293b !important;
-        stroke: #1e293b !important;
-    }
-
-    /* Ocultar menú */
+    /* Ocultar menú (opcional, no rompe nada) */
     #MainMenu { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)

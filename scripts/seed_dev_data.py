@@ -1,5 +1,5 @@
 """
-Seed masivo para desarrollo — genera datos realistas y variados.
+Seed masivo con fallas, subfallas y reflexiones detalladas.
 """
 import sys, os, random
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -29,35 +29,86 @@ EMPRESAS = [
     "Avianca", "Claro Colombia", "EPM", "Davivienda", "Nutresa",
     "Pragma", "PSL", "Globant", "Endava", "Softtek",
     "IBM Colombia", "Accenture", "Deloitte", "EY Colombia", "PwC",
-    "Heinsohn", "Arus", "Cadena", "Indra", "Stefanini",
 ]
 VACANTES = [
     "Desarrollador Backend Java", "Ingeniero Spring Boot", "Full Stack Developer",
     "Desarrollador de Software Jr", "Programador Java", "Backend Developer",
     "Desarrollador API REST", "Ingeniero de Software", "Java Developer Jr",
-    "Desarrollador Web Backend", "Software Engineer", "Programador Jr",
+    "Desarrollador Web Backend",
 ]
-CIUDADES = ["Bogotá", "Medellín", "Cali", "Barranquilla", "Bucaramanga", "Pereira", "Manizales"]
-FALLAS = [f.value for f in FallaEnum]
+CIUDADES = ["Bogotá", "Medellín", "Cali", "Barranquilla", "Bucaramanga", "Pereira"]
+
+# Subfallas reales por falla
+SUBFALLAS_POR_FALLA = {
+    "TECNICA": [
+        "No conocía el tema",
+        "Error lógico",
+        "Falta de profundidad",
+    ],
+    "COMUNICACION": [
+        "No supe explicar",
+        "Falta de claridad",
+        "Desorden al hablar",
+    ],
+    "BLANDAS": [
+        "No estructuré respuestas",
+        "No comuniqué experiencia",
+    ],
+    "REGULACION_EMOCIONAL": [
+        "Me bloqueé",
+        "Perdí el hilo",
+        "Nervios altos",
+    ],
+}
+
+REFLEXIONES_BIEN = [
+    "Expliqué bien mis proyectos anteriores",
+    "Respondí con seguridad las preguntas de RRHH",
+    "Llegué puntual y bien presentado",
+    "Demostré conocimiento en Spring Boot",
+    "Mantuve buena comunicación durante toda la entrevista",
+    "Resolví correctamente el ejercicio de SQL",
+    "Pregunté dudas relevantes al final",
+    "Expresé claramente mi motivación por la empresa",
+]
+
+REFLEXIONES_MEJORAR = [
+    "Necesito practicar más algoritmos de ordenamiento",
+    "Debo mejorar la explicación de conceptos de Java OOP",
+    "Estudiar más sobre arquitectura de microservicios",
+    "Practicar SQL joins complejos",
+    "Mejorar la claridad al explicar proyectos",
+    "Reducir los nervios al hablar en público",
+    "Estructurar mejor las respuestas STAR",
+    "Profundizar en Spring Security",
+    "Practicar más ejercicios en vivo de código",
+    "Mejorar el inglés técnico",
+]
+
 ORIGENES = [o.value for o in OrigenApp]
 MODALIDADES_APP = [m.value for m in ModalidadApp]
 TIPOS_ENT = [t.value for t in TipoEntrevista]
 MODALIDADES_ENT = [m.value for m in ModalidadEntrevista]
+TEMAS_TECNICOS = ["JAVA", "SPRING_BOOT", "APIS", "SQL", "ALGORITMOS", "OTRO"]
 
 PWD = hash_password("Test@1234")
+
 
 def rand_fecha(dias_min=1, dias_max=150):
     return date.today() - timedelta(days=random.randint(dias_min, dias_max))
 
+
 def rand_datetime(dias_min=1, dias_max=150):
     return datetime.now(timezone.utc) - timedelta(
         days=random.randint(dias_min, dias_max),
-        hours=random.randint(0, 8)
+        hours=random.randint(0, 8),
     )
 
+
 def crear_usuario(db, email, rol, estado=EstadoUsuario.ACTIVO, dias_login=1):
-    if db.query(Usuario).filter(Usuario.email == email).first():
-        return db.query(Usuario).filter(Usuario.email == email).first()
+    u = db.query(Usuario).filter(Usuario.email == email).first()
+    if u:
+        return u
     u = Usuario(
         email=email, password_hash=PWD, rol=rol,
         estado=estado, activo=True,
@@ -65,22 +116,54 @@ def crear_usuario(db, email, rol, estado=EstadoUsuario.ACTIVO, dias_login=1):
     )
     db.add(u); db.flush(); return u
 
+
+def hacer_entrevista(app_id, tipo, dias, fallas_keys, grupal=False):
+    """Crea una entrevista con fallas y subfallas realistas."""
+    subfallas = []
+    for fk in fallas_keys:
+        subs = SUBFALLAS_POR_FALLA.get(fk, [])
+        if subs:
+            n = random.randint(1, min(2, len(subs)))
+            subfallas.extend(random.sample(subs, n))
+
+    temas = []
+    if "TECNICA" in fallas_keys:
+        temas = random.sample(TEMAS_TECNICOS, random.randint(1, 3))
+
+    percepcion = None
+    if grupal:
+        percepcion = random.choice([p.value for p in PercepcionGrupal])
+
+    return Entrevista(
+        aplicacion_id=app_id,
+        tipo=tipo,
+        modalidad=random.choice(MODALIDADES_ENT),
+        fecha=rand_datetime(dias, dias + 2),
+        grupal=grupal,
+        percepcion_grupal=percepcion,
+        fallas=fallas_keys,
+        subfallas=subfallas,
+        temas_tecnicos=temas,
+        autoevaluacion=random.randint(1, 5),
+        reflexion_bien=random.choice(REFLEXIONES_BIEN),
+        reflexion_mejorar=random.choice(REFLEXIONES_MEJORAR),
+        respuesta_empresa=random.choice([r.value for r in RespuestaEmpresa] + [None]),
+    )
+
+
 def seed():
     create_all_tables()
     db = SessionLocal()
-    print("🌱 Generando datos masivos...\n")
+    print("🌱 Generando datos masivos con fallas detalladas...\n")
 
     try:
         # ── Coordinador ───────────────────────────────────────────
         coord = crear_usuario(db, "coord@bootcamp.com", RolEnum.COORDINADOR)
-        print("✅ Coordinador creado")
+        print("✅ Coordinador")
 
         # ── 4 Tutores ─────────────────────────────────────────────
-        tutores = []
-        for i in range(1, 5):
-            t = crear_usuario(db, f"tutor{i}@bootcamp.com", RolEnum.TUTOR)
-            tutores.append(t)
-        print(f"✅ {len(tutores)} tutores creados")
+        tutores = [crear_usuario(db, f"tutor{i}@bootcamp.com", RolEnum.TUTOR) for i in range(1, 5)]
+        print(f"✅ {len(tutores)} tutores")
 
         # ── 3 Cohortes ────────────────────────────────────────────
         cohortes_data = [
@@ -100,51 +183,43 @@ def seed():
                 )
                 db.add(c); db.flush()
             cohortes.append(c)
-        print(f"✅ {len(cohortes)} cohortes creadas")
+        print(f"✅ {len(cohortes)} cohortes")
 
-        # ── 45 Aprendices ─────────────────────────────────────────
-        aprendices_creados = 0
-        aprendiz_idx = 1
-
+        # ── Aprendices ────────────────────────────────────────────
         nombres = [
             "ana","carlos","sofia","daniel","maria","juan","laura","pedro",
             "valeria","miguel","camila","andres","isabella","sebastian","valentina",
             "felipe","natalia","julian","paula","david","sara","jorge","diana",
             "alejandro","monica","ricardo","paola","luis","adriana","gabriel",
             "catalina","mario","andrea","nicolas","claudia","roberto","patricia",
-            "sergio","liliana","fernando","carolina","henry","marcela","ivan","gloria"
+            "sergio","liliana","fernando","carolina","henry","marcela","ivan","gloria",
         ]
 
-        for cohorte in cohortes:
-            # 15 aprendices por cohorte
-            tutor_pool = tutores[:2] if cohorte == cohortes[0] else tutores[1:3] if cohorte == cohortes[1] else tutores[2:]
-            n_aprendices = 15
+        aprendiz_idx = 1
+        for ci, cohorte in enumerate(cohortes):
+            tutor_pool = tutores[:2] if ci == 0 else tutores[1:3] if ci == 1 else tutores[2:]
 
-            for i in range(n_aprendices):
+            for _ in range(15):
                 nombre = nombres[aprendiz_idx % len(nombres)]
-                email = f"{nombre}{aprendiz_idx}@gmail.com"
+                email  = f"{nombre}{aprendiz_idx}@gmail.com"
                 aprendiz_idx += 1
 
-                # Variedad de inactividad
-                dias_login = random.choice([1, 2, 3, 7, 10, 15, 20, 25])
-                ap = crear_usuario(db, email, RolEnum.APRENDIZ, dias_login=dias_login)
-
+                ap = crear_usuario(db, email, RolEnum.APRENDIZ,
+                                   dias_login=random.choice([1,2,3,7,10,15,20,25]))
                 tutor = random.choice(tutor_pool)
+
                 if not db.query(AprendizPerfil).filter(AprendizPerfil.usuario_id == ap.id).first():
-                    perfil = AprendizPerfil(
+                    db.add(AprendizPerfil(
                         usuario_id=ap.id, cohorte_id=cohorte.id,
                         tutor_id=tutor.id, ciudad=random.choice(CIUDADES),
                         telefono=f"30{random.randint(10000000,99999999)}",
-                    )
-                    db.add(perfil); db.flush()
+                    )); db.flush()
 
-                # ── Aplicaciones por aprendiz ──────────────────────
-                n_apps = random.randint(2, 8)
-                for j in range(n_apps):
-                    empresa = random.choice(EMPRESAS)
+                # ── Aplicaciones ──────────────────────────────────
+                for _ in range(random.randint(3, 8)):
                     app = Aplicacion(
                         usuario_id=ap.id,
-                        empresa=empresa,
+                        empresa=random.choice(EMPRESAS),
                         vacante=random.choice(VACANTES),
                         modalidad=random.choice(MODALIDADES_APP),
                         origen=random.choice(ORIGENES),
@@ -152,125 +227,82 @@ def seed():
                     )
                     db.add(app); db.flush()
 
-                    # ── Entrevistas por aplicación ─────────────────
-                    # Distribución realista de estados
                     perfil_tipo = random.choices(
-                        ["contratado", "avanzando", "rechazado", "en_espera", "aplicado"],
-                        weights=[10, 25, 20, 25, 20]
+                        ["contratado","avanzando","rechazado","en_espera","aplicado"],
+                        weights=[10, 28, 22, 25, 15],
                     )[0]
 
-                    entrevistas = []
+                    todas_fallas = list(SUBFALLAS_POR_FALLA.keys())
 
                     if perfil_tipo == "contratado":
-                        n_ent = random.randint(3, 5)
-                        for k in range(n_ent):
-                            dias = random.randint(1, 5) + k * 7
-                            e = Entrevista(
-                                aplicacion_id=app.id,
-                                tipo=TIPOS_ENT[min(k, len(TIPOS_ENT)-1)],
-                                modalidad=random.choice(MODALIDADES_ENT),
-                                fecha=rand_datetime(dias, dias+2),
-                                grupal=random.choice([True, False]),
-                                percepcion_grupal=random.choice([p.value for p in PercepcionGrupal]) if random.random() > 0.5 else None,
-                                fallas=random.sample(FALLAS, random.randint(0, 2)),
-                                autoevaluacion=random.randint(3, 5),
-                                reflexion_bien="Buena comunicación y preparación técnica",
-                                reflexion_mejorar="Mejorar velocidad en algoritmos",
-                                respuesta_empresa=RespuestaEmpresa.AVANZO.value,
-                            )
-                            if e.grupal and not e.percepcion_grupal:
-                                e.percepcion_grupal = PercepcionGrupal.MEJOR.value
+                        # 3-5 entrevistas, sin fallas o pocas
+                        for k in range(random.randint(3, 5)):
+                            fallas = random.sample(todas_fallas, random.randint(0, 1))
+                            e = hacer_entrevista(app.id, TIPOS_ENT[min(k, 2)],
+                                                 random.randint(1,5) + k*7, fallas,
+                                                 grupal=random.random() > 0.7)
+                            e.autoevaluacion = random.randint(3, 5)
                             db.add(e); db.flush()
-                            entrevistas.append(e)
                         todas = db.query(Entrevista).filter(Entrevista.aplicacion_id == app.id).all()
                         aplicar_estado(app, todas)
                         app.estado = EstadoApp.CONTRATADO
 
                     elif perfil_tipo == "avanzando":
-                        n_ent = random.randint(2, 4)
-                        for k in range(n_ent):
-                            e = Entrevista(
-                                aplicacion_id=app.id,
-                                tipo=random.choice(TIPOS_ENT),
-                                modalidad=random.choice(MODALIDADES_ENT),
-                                fecha=rand_datetime(1, 8),
-                                grupal=False,
-                                fallas=random.sample(FALLAS, random.randint(0, 2)),
-                                autoevaluacion=random.randint(2, 4),
-                                reflexion_bien="Me expresé bien",
-                                reflexion_mejorar="Debo practicar más SQL",
-                            )
+                        for k in range(random.randint(2, 4)):
+                            fallas = random.sample(todas_fallas, random.randint(1, 2))
+                            e = hacer_entrevista(app.id, random.choice(TIPOS_ENT),
+                                                 random.randint(1, 7), fallas)
+                            e.autoevaluacion = random.randint(2, 4)
                             db.add(e); db.flush()
-                            entrevistas.append(e)
                         todas = db.query(Entrevista).filter(Entrevista.aplicacion_id == app.id).all()
                         aplicar_estado(app, todas)
 
                     elif perfil_tipo == "rechazado":
-                        n_ent = random.randint(2, 3)
-                        for k in range(n_ent):
-                            e = Entrevista(
-                                aplicacion_id=app.id,
-                                tipo=random.choice(TIPOS_ENT),
-                                modalidad=random.choice(MODALIDADES_ENT),
-                                fecha=rand_datetime(11, 14),
-                                grupal=False,
-                                fallas=random.sample(FALLAS, random.randint(1, 3)),
-                                autoevaluacion=random.randint(1, 3),
-                                reflexion_bien="Llegué a tiempo",
-                                reflexion_mejorar="Necesito mejorar mucho en Java y Spring",
-                                respuesta_empresa=RespuestaEmpresa.RECHAZADO.value,
-                            )
+                        for k in range(random.randint(2, 3)):
+                            fallas = random.sample(todas_fallas, random.randint(2, 3))
+                            e = hacer_entrevista(app.id, random.choice(TIPOS_ENT),
+                                                 random.randint(11, 14), fallas)
+                            e.autoevaluacion = random.randint(1, 3)
                             db.add(e); db.flush()
-                            entrevistas.append(e)
                         todas = db.query(Entrevista).filter(Entrevista.aplicacion_id == app.id).all()
                         aplicar_estado(app, todas)
 
                     elif perfil_tipo == "en_espera":
-                        e = Entrevista(
-                            aplicacion_id=app.id,
-                            tipo=TipoEntrevista.RRHH.value,
-                            modalidad=random.choice(MODALIDADES_ENT),
-                            fecha=rand_datetime(2, 9),
-                            grupal=False,
-                            fallas=random.sample(FALLAS, random.randint(0, 1)),
-                            autoevaluacion=random.randint(2, 4),
-                            reflexion_bien="Buena actitud",
-                            reflexion_mejorar="Mejorar inglés",
-                        )
+                        fallas = random.sample(todas_fallas, random.randint(0, 2))
+                        e = hacer_entrevista(app.id, TipoEntrevista.RRHH.value,
+                                             random.randint(2, 9), fallas)
                         db.add(e); db.flush()
                         todas = db.query(Entrevista).filter(Entrevista.aplicacion_id == app.id).all()
                         aplicar_estado(app, todas)
-                    # else: APLICADO — sin entrevistas
-
-                aprendices_creados += 1
+                    # aplicado: sin entrevistas
 
         db.commit()
 
-        # Stats finales
+        total_ap   = db.query(Usuario).filter(Usuario.rol == RolEnum.APRENDIZ).count()
         total_apps = db.query(Aplicacion).count()
-        total_ent = db.query(Entrevista).count()
-        total_ap = db.query(Usuario).filter(Usuario.rol == RolEnum.APRENDIZ).count()
-        contratados = db.query(Aplicacion).filter(Aplicacion.estado == EstadoApp.CONTRATADO).count()
+        total_ent  = db.query(Entrevista).count()
+        contrat    = db.query(Aplicacion).filter(Aplicacion.estado == EstadoApp.CONTRATADO).count()
 
-        print(f"\n🎉 Seed masivo completado!")
+        print(f"\n🎉 Seed completado!")
         print(f"{'─'*50}")
         print(f"  Aprendices  : {total_ap}")
         print(f"  Aplicaciones: {total_apps}")
         print(f"  Entrevistas : {total_ent}")
-        print(f"  Contratados : {contratados}")
+        print(f"  Contratados : {contrat}")
         print(f"{'─'*50}")
-        print(f"\n  Coordinador : coord@bootcamp.com   / Coord@1234")
+        print(f"  Coordinador : coord@bootcamp.com  / Test@1234")
         print(f"  Tutores     : tutor1-4@bootcamp.com / Test@1234")
-        print(f"  Aprendices  : ana1@gmail.com ... / Test@1234")
+        print(f"  Aprendices  : ana1@gmail.com ...   / Test@1234")
         print(f"{'─'*50}\n")
 
-    except Exception as e:
+    except Exception as ex:
         db.rollback()
-        print(f"❌ Error: {e}")
+        print(f"❌ Error: {ex}")
         import traceback; traceback.print_exc()
         raise
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     seed()

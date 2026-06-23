@@ -141,15 +141,11 @@ def _bloque_vacantes(apps, entrevistas_por_app):
                 for e in sorted(ents, key=lambda x: x["fecha"]):
                     tipo_icon = {"RRHH": "👥", "TECNICA": "💻", "PRUEBA_TECNICA": "📝"}.get(e["tipo"], "🗓️")
                     fecha_str = e["fecha"][:10]
+                    auto_str = f" ⭐ {e['autoevaluacion']}/5" if e.get("autoevaluacion") else ""
+                    grupal_str = " 👥 Grupal" if e.get("grupal") else ""
                     st.markdown(
-                        f"""<div style="background:#f8fafc;border-left:3px solid #3b82f6;
-                        padding:10px 14px;border-radius:6px;margin:6px 0">
-                        <strong>{tipo_icon} {e['tipo']}</strong> — {fecha_str} — {e['modalidad']}
-                        {"&nbsp;&nbsp;👥 Grupal" if e.get('grupal') else ""}
-                        {"&nbsp;&nbsp;⭐ Auto: " + str(e['autoevaluacion']) + "/5" if e.get('autoevaluacion') else ""}
-                        </div>""",
-                        unsafe_allow_html=True,
-                    )
+                        f"**{tipo_icon} {e['tipo']}** — {fecha_str} — {e['modalidad']}{grupal_str}{auto_str}"
+                    )    
             else:
                 st.caption("Sin entrevistas aún para esta aplicación.")
 

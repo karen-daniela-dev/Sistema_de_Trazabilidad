@@ -48,7 +48,7 @@ def calcular_estado(aplicacion: Aplicacion, entrevistas: Sequence[Entrevista]) -
         return EstadoApp.EN_ESPERA
 
     # n >= 2
-    ultima = max(entrevistas, key=lambda e: e.fecha)
+    ultima = max(entrevistas, key=lambda e: e.fecha.replace(tzinfo=None) if e.fecha.tzinfo else e.fecha)
     dias = _dias_desde(ultima.fecha)
 
     if DIAS_RECHAZO_MIN <= dias <= DIAS_RECHAZO_MAX:
