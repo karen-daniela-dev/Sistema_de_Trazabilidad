@@ -33,15 +33,25 @@ FALLAS_LABEL = {
     "REGULACION_EMOCIONAL": "Regulación emocional",
     "SIN_FALLAS":           "Sin fallas",
 }
-SEMAFORO_COLOR = {"GREEN": "#22c55e", "YELLOW": "#f59e0b", "RED": "#ef4444"}
-SEMAFORO_LABEL = {"GREEN": "🟢 Al día", "YELLOW": "🟡 Requiere atención", "RED": "🔴 Crítico"}
-
+SEMAFORO_COLOR = {
+    "GREEN": "#22c55e",
+    "YELLOW": "#f59e0b",
+    "RED": "#ef4444",
+    "INSUFFICIENT_DATA": "#64748b",
+}
+SEMAFORO_LABEL = {
+    "GREEN": "Óptimo",
+    "YELLOW": "Atención",
+    "RED": "Crítico",
+    "INSUFFICIENT_DATA": "Sin datos suficientes",
+}
 
 # ── Helpers de datos ──────────────────────────────────────────────────────────
 
 def _cargar_datos():
     """Carga y estructura todos los datos del aprendiz en un solo bloque."""
     kpis      = api.get_kpis_personal() or {}
+    
     resultado = api.get_aplicaciones(size=100) or {}
     apps      = resultado.get("items", [])
 
@@ -52,39 +62,137 @@ def _cargar_datos():
 
     return kpis, apps, entrevistas_por_app
 
+def _calcular_metricas(apps, entrevistas_por_app):
+    """Calcula métricas derivadas para el dashboard."""
+    total_ents = sum(len(v) for v in entrevistas_por_app.values())
+
+    todas_ents = [
+        entrevista
+        for entrevistas in entrevistas_por_app.values()
+        for entrevista in entrevistas
+    ]
+
+    autoevals = [
+        e["autoevaluacion"]
+        for e in todas_ents
+        if e.get("autoevaluacion")
+    ]
+
+    prom_auto = (
+        round(sum(autoevals) / len(autoevals), 1)
+        if autoevals else 0
+    )
+
+    return {
+        "total_apps": len(apps),
+        "total_ents": total_ents,
+        "prom_auto": prom_auto,
+    }
+
+
+def _semaforo_icon(estado):
+    """Retorna icono visual según estado del semáforo."""
+    return {
+        "GREEN": "🟢",
+        "YELLOW": "🟡",
+        "RED": "🔴",
+        "INSUFFICIENT_DATA": "⚪",
+    }.get(estado, "⚪")
+
+
+def _render_semaforo_card(estado, titulo, subtitulo):
+    """Renderiza una tarjeta de semáforo."""
+    color = SEMAFORO_COLOR.get(estado, "#64748b")
+    label = SEMAFORO_LABEL.get(estado, estado)
+    icon = _semaforo_icon(estado)
+
+    st.markdown(
+        f"""
+        <div style="
+            background:{color}18;
+            border:2px solid {color};
+            border-radius:12px;
+            padding:18px 24px;
+            margin-bottom:16px;
+            display:flex;
+            align-items:center;
+            gap:16px;
+        ">
+            <span style="font-size:2.2rem">{icon}</span>
+            <div>
+                <p style="
+                    margin:0;
+                    font-size:1.05rem;
+                    font-weight:700;
+                    color:{color};
+                ">
+                    {titulo}: {label}
+                </p>
+                <p style="
+                    margin:0;
+                    font-size:.85rem;
+                    color:#64748b;
+                ">
+                    {subtitulo}
+                </p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 
 # ── Bloque 1: Semáforo + métricas ─────────────────────────────────────────────
 
 def _bloque_semaforo(kpis, apps, entrevistas_por_app):
-    semaforo = kpis.get("semaforo", "GREEN")
-    color    = SEMAFORO_COLOR[semaforo]
-    label    = SEMAFORO_LABEL[semaforo]
+    # st.write("DEBUG KPIS:")
+    # st.write(kpis)
+    actividad = kpis.get("semaforo_actividad", "GREEN")
+    progreso = kpis.get("semaforo_progreso", "INSUFFICIENT_DATA")
 
-    total_ents = sum(len(v) for v in entrevistas_por_app.values())
-    todas_ents = [e for v in entrevistas_por_app.values() for e in v]
-    autoevals  = [e["autoevaluacion"] for e in todas_ents if e.get("autoevaluacion")]
-    prom_auto  = round(sum(autoevals) / len(autoevals), 1) if autoevals else 0
+    metricas = _calcular_metricas(apps, entrevistas_por_app)
 
-    # Semáforo grande
-    st.markdown(
-        f"""<div style="background:{color}18;border:2px solid {color};border-radius:12px;
-        padding:18px 24px;margin-bottom:16px;display:flex;align-items:center;gap:16px">
-        <span style="font-size:2.5rem">{"🟢" if semaforo=="GREEN" else "🟡" if semaforo=="YELLOW" else "🔴"}</span>
-        <div>
-            <p style="margin:0;font-size:1.1rem;font-weight:700;color:{color}">{label}</p>
-            <p style="margin:0;font-size:.85rem;color:#64748b">Estado de tu proceso de empleabilidad</p>
-        </div>
-        </div>""",
-        unsafe_allow_html=True,
+    # ── Semáforos ────────────────────────────────────────────────────────────
+    col1, col2 = st.columns(2)
+
+    with col1:
+        _render_semaforo_card(
+            actividad,
+            "Actividad",
+            "Frecuencia reciente de aplicaciones"
+        )
+
+    with col2:
+        _render_semaforo_card(
+            progreso,
+            "Progreso",
+            "Conversión de aplicaciones a entrevistas"
+        )
+
+    # ── KPIs ─────────────────────────────────────────────────────────────────
+    c1, c2, c3 = st.columns(3)
+
+    kpi_card(
+        c1,
+        "Aplicaciones",
+        metricas["total_apps"],
+        "empresas contactadas"
     )
 
-    c1, c2, c3 = st.columns(3)
-    kpi_card(c1, "Aplicaciones", len(apps), "empresas contactadas")
-    kpi_card(c2, "Entrevistas", total_ents, "realizadas en total")
-    kpi_card(c3, "Autoevaluación promedio",
-             f"{prom_auto}/5" if prom_auto else "—",
-             "basado en tus registros",
-             color="#8b5cf6")
+    kpi_card(
+        c2,
+        "Entrevistas",
+        metricas["total_ents"],
+        "realizadas en total"
+    )
+
+    kpi_card(
+        c3,
+        "Autoevaluación promedio",
+        f'{metricas["prom_auto"]}/5' if metricas["prom_auto"] else "—",
+        "basado en tus registros",
+        color="#8b5cf6"
+    )
 
 
 # ── Bloque 2: Vacantes y etapas ───────────────────────────────────────────────

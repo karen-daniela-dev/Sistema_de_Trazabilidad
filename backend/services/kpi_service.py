@@ -14,7 +14,7 @@ from backend.models.cohorte import Cohorte
 from backend.models.entrevista import Entrevista
 from backend.models.usuario import Usuario
 from backend.models.enums import EstadoApp, RolEnum
-from backend.services.alert_engine import semaforo_aprendiz, semaforo_cohorte
+from backend.services.alert_engine import semaforo_aprendiz, semaforo_cohorte, semaforo_actividad, semaforo_progreso
 
 
 # ── KPIs personales (APRENDIZ) ────────────────────────────────────────────────
@@ -38,7 +38,7 @@ def kpis_personales(db: Session, usuario_id: UUID) -> dict:
         for f in (e.fallas or []):
             fallas[f] = fallas.get(f, 0) + 1
 
-    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first() #eliminar
 
     return {
         "total_aplicaciones": total_apps,
@@ -46,7 +46,10 @@ def kpis_personales(db: Session, usuario_id: UUID) -> dict:
         "tasa_conversion": conversion,
         "contratado": contratado,
         "fallas_frecuentes": sorted(fallas.items(), key=lambda x: -x[1])[:5],
-        "semaforo": semaforo_aprendiz(apps, entrevistas, usuario.last_login if usuario else None),
+        
+        "semaforo_actividad": semaforo_actividad(apps, entrevistas),
+        "semaforo_progreso": semaforo_progreso(apps, entrevistas),
+        
         "por_estado": {
             estado.value: sum(1 for a in apps if a.estado == estado)
             for estado in EstadoApp

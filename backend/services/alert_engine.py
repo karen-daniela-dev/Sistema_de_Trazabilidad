@@ -1,4 +1,5 @@
 """
+services/alert_engine.py
 Motor de alertas y semáforos.
 Detecta patrones de inactividad, baja conversión y riesgo de cohorte.
 """
@@ -13,16 +14,23 @@ from backend.models.cohorte import Cohorte
 from backend.models.entrevista import Entrevista
 from backend.models.usuario import Usuario
 from backend.models.enums import EstadoApp
+from backend.services.state_engine import _dias_desde
 
 # ── Umbrales ──────────────────────────────────────────────────────────────────
 DIAS_INACTIVIDAD_YELLOW = 7
 DIAS_INACTIVIDAD_RED = 14
+
+DIAS_GRACIA_PROGRESO = 8
+CONVERSION_GREEN = 0.25
+CONVERSION_YELLOW = 0.10
+
+
 APPS_SIN_ENTREVISTA_UMBRAL = 5
 AVANCE_COHORTE_RIESGO = 0.70
 
 
 # ── Semáforos ─────────────────────────────────────────────────────────────────
-
+#deprecado
 def semaforo_aprendiz(
     aplicaciones: Sequence[Aplicacion],
     entrevistas: Sequence[Entrevista],
@@ -52,6 +60,108 @@ def semaforo_aprendiz(
         return "YELLOW"
 
     return "GREEN"
+
+
+
+
+
+
+def semaforo_actividad(
+    aplicaciones: Sequence[Aplicacion],
+    entrevistas: Sequence[Entrevista],
+) -> str:
+    """
+    Evalúa actividad real del aprendiz.
+    Señal principal: aplicaciones.
+    Señal secundaria: entrevistas.
+    """
+
+    if not aplicaciones:
+        return "RED"
+
+    if any(a.estado == EstadoApp.CONTRATADO for a in aplicaciones):
+        return "GREEN"
+
+    fechas = [a.fecha_aplicacion for a in aplicaciones]
+
+    if entrevistas:
+        fechas.extend(
+            e.fecha.date() if hasattr(e.fecha, "date") else e.fecha
+            for e in entrevistas
+        )
+    ultima_actividad = max(fechas)
+    dias = _dias_desde(ultima_actividad)
+
+    if dias > DIAS_INACTIVIDAD_RED:
+        return "RED"
+
+    if dias >= DIAS_INACTIVIDAD_YELLOW:
+        return "YELLOW"
+
+    return "GREEN"
+
+
+def semaforo_progreso(
+    aplicaciones: Sequence[Aplicacion],
+    entrevistas: Sequence[Entrevista],
+) -> str:
+    """
+    Evalúa progreso real del proceso de empleabilidad.
+    Basado en aplicaciones maduras + conversión + estados.
+    """
+
+    if not aplicaciones:
+        return "INSUFFICIENT_DATA"
+
+    if any(a.estado == EstadoApp.CONTRATADO for a in aplicaciones):
+        return "GREEN"
+
+    hoy = date.today()
+
+    apps_maduras = [
+        a for a in aplicaciones
+        if (hoy - a.fecha_aplicacion).days >= DIAS_GRACIA_PROGRESO
+    ]
+
+    if len(apps_maduras) < 5:
+        return "INSUFFICIENT_DATA"
+
+    apps_con_entrevista = sum(
+        1 for a in apps_maduras if len(a.entrevistas) > 0
+    )
+
+    conversion = apps_con_entrevista / len(apps_maduras)
+
+    apps_espera = sum(
+        1 for a in apps_maduras if a.estado == EstadoApp.EN_ESPERA
+    )
+
+    apps_avanzando = sum(
+        1 for a in apps_maduras if a.estado == EstadoApp.AVANZANDO
+    )
+
+    score = 0
+
+    # Conversión
+    if conversion >= CONVERSION_GREEN:
+        score += 50
+    elif conversion >= CONVERSION_YELLOW:
+        score += 25
+
+    # Estados
+    score += apps_espera * 10
+    score += apps_avanzando * 20
+
+    if score >= 60:
+        return "GREEN"
+
+    if score >= 25:
+        return "YELLOW"
+
+    return "RED"
+
+
+
 
 
 def semaforo_cohorte(cohorte: Cohorte, contratados: int) -> str:

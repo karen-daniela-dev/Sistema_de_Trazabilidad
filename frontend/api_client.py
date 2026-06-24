@@ -152,6 +152,10 @@ def crear_entrevista(data: dict):
 
 def get_kpis_personal():
     r = requests.get(f"{API_BASE}/kpis/personal", headers=_headers(), timeout=TIMEOUT)
+
+    # st.write("DEBUG STATUS:", r.status_code)
+    # st.write("DEBUG BODY:", r.text)
+
     return _handle_response(r)
 
 
