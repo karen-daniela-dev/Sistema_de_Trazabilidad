@@ -1,4 +1,5 @@
 """
+state_engine.py
 Motor de estados de aplicación.
 La lógica de transición vive SOLO aquí — nunca en routers ni modelos.
 """

@@ -1,4 +1,5 @@
 """
+api_client.py
 Cliente HTTP centralizado para comunicar el frontend con la API.
 Todas las llamadas pasan por aquí — nunca llamar requests directamente en pages/.
 """
