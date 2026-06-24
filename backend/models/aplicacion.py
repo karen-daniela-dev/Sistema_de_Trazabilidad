@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database import Base
 from backend.models.enums import ModalidadApp, OrigenApp, EstadoApp
 
-
+#models/aplicacion.py
 class Aplicacion(Base):
     __tablename__ = "aplicaciones"
 

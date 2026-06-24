@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database import Base
 from backend.models.enums import RolEnum, EstadoUsuario
-
+#models/usuario.py
 
 class Usuario(Base):
     __tablename__ = "usuarios"

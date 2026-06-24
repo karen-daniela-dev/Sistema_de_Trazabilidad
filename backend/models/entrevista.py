@@ -11,7 +11,7 @@ from backend.models.enums import (
     TipoEntrevista, ModalidadEntrevista, PercepcionGrupal,
     FallaEnum, TemaTecnico, RespuestaEmpresa
 )
-
+#moels/entrevistas.py
 
 class Entrevista(Base):
     __tablename__ = "entrevistas"
