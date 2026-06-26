@@ -15,13 +15,13 @@ class Usuario(Base):
     )
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    rol: Mapped[RolEnum] = mapped_column(SAEnum(RolEnum, name="rol_enum"), nullable=False)
+    rol: Mapped[RolEnum] = mapped_column(SAEnum(RolEnum, name="rol_enum"), nullable=False, index=True)
     estado: Mapped[EstadoUsuario] = mapped_column(
         SAEnum(EstadoUsuario, name="estado_usuario"),
         nullable=False,
         default=EstadoUsuario.PENDIENTE,
     )
-    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -33,10 +33,11 @@ class Usuario(Base):
         foreign_keys="[AprendizPerfil.usuario_id]",
         back_populates="usuario", 
         uselist=False, 
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )
     aplicaciones: Mapped[list["Aplicacion"]] = relationship(
-        "Aplicacion", back_populates="usuario", cascade="all, delete-orphan"
+        "Aplicacion", back_populates="usuario", cascade="all, delete-orphan", lazy="selectin"
     )
     tutores_asignados: Mapped[list["AprendizPerfil"]] = relationship(
         "AprendizPerfil",

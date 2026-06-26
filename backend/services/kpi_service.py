@@ -20,6 +20,7 @@ from backend.services.alert_engine import (
     semaforo_actividad,
     semaforo_progreso,
 )
+from backend.services.query_service import get_tutor_aprendiz_ids
 
 from backend.models.enums import (
     EstadoApp,
@@ -87,14 +88,11 @@ def build_kpi_context(db: Session) -> dict:
 # ── KPIs personales (APRENDIZ) ────────────────────────────────────────────────
 
 def kpis_personales(db: Session, usuario_id: UUID) -> dict:
-    apps = db.query(Aplicacion).filter(Aplicacion.usuario_id == usuario_id).all()
-    ids = [a.id for a in apps]
-
+    apps = list(db.query(Aplicacion).filter(Aplicacion.usuario_id == usuario_id).all())
+    app_ids = [a.id for a in apps]
     entrevistas = (
-        db.query(Entrevista)
-        .filter(Entrevista.aplicacion_id.in_(ids))
-        .all()
-        if ids else []
+        list(db.query(Entrevista).filter(Entrevista.aplicacion_id.in_(app_ids)).all())
+        if app_ids else []
     )
 
     total_apps = len(apps)
@@ -114,10 +112,8 @@ def kpis_personales(db: Session, usuario_id: UUID) -> dict:
         "tasa_conversion": conversion,
         "contratado": contratado,
         "fallas_frecuentes": sorted(fallas.items(), key=lambda x: -x[1])[:5],
-
         "semaforo_actividad": semaforo_actividad(apps, entrevistas),
         "semaforo_progreso": semaforo_progreso(apps, entrevistas),
-
         "por_estado": {
             estado.value: sum(1 for a in apps if a.estado == estado)
             for estado in EstadoApp
@@ -128,36 +124,55 @@ def kpis_personales(db: Session, usuario_id: UUID) -> dict:
 # ── KPIs de grupo (TUTOR) ─────────────────────────────────────────────────────
 
 def kpis_grupo(db: Session, tutor_id: UUID) -> dict:
-    aprendices_ids = [
-        p.usuario_id
-        for p in db.query(AprendizPerfil)
-        .filter(AprendizPerfil.tutor_id == tutor_id)
-        .all()
-    ]
+    aprendices_ids = get_tutor_aprendiz_ids(db, tutor_id)
 
     if not aprendices_ids:
         return {"total_aprendices": 0, "aprendices": [], "resumen": {}}
 
-    result = []
+    usuarios = {
+        u.id: u
+        for u in db.query(Usuario).filter(Usuario.id.in_(aprendices_ids)).all()
+    }
+    apps = list(db.query(Aplicacion).filter(Aplicacion.usuario_id.in_(aprendices_ids)).all())
+    app_ids = [a.id for a in apps]
+    entrevistas = (
+        list(db.query(Entrevista).filter(Entrevista.aplicacion_id.in_(app_ids)).all())
+        if app_ids else []
+    )
 
+    apps_by_user = defaultdict(list)
+    entrevistas_by_app = defaultdict(list)
+    for app in apps:
+        apps_by_user[app.usuario_id].append(app)
+    for ent in entrevistas:
+        entrevistas_by_app[ent.aplicacion_id].append(ent)
+
+    result = []
     totales = {
-        "actividad": {
-            "GREEN": 0,
-            "YELLOW": 0,
-            "RED": 0,
-        },
-        "progreso": {
-            "GREEN": 0,
-            "YELLOW": 0,
-            "RED": 0,
-            "INSUFFICIENT_DATA": 0,
-        },
+        "actividad": {"GREEN": 0, "YELLOW": 0, "RED": 0},
+        "progreso": {"GREEN": 0, "YELLOW": 0, "RED": 0, "INSUFFICIENT_DATA": 0},
         "contratados": 0,
     }
 
     for uid in aprendices_ids:
-        kpi = kpis_personales(db, uid)
-        u = db.query(Usuario).filter(Usuario.id == uid).first()
+        user_apps = apps_by_user.get(uid, [])
+        user_entrevistas = []
+        for app in user_apps:
+            user_entrevistas.extend(entrevistas_by_app.get(app.id, []))
+
+        kpi = {
+            "total_aplicaciones": len(user_apps),
+            "total_entrevistas": len(user_entrevistas),
+            "tasa_conversion": round(len(user_entrevistas) / len(user_apps), 2) if user_apps else 0.0,
+            "contratado": any(a.estado == EstadoApp.CONTRATADO for a in user_apps),
+            "fallas_frecuentes": [],
+            "semaforo_actividad": semaforo_actividad(user_apps, user_entrevistas),
+            "semaforo_progreso": semaforo_progreso(user_apps, user_entrevistas),
+            "por_estado": {
+                estado.value: sum(1 for a in user_apps if a.estado == estado)
+                for estado in EstadoApp
+            },
+        }
 
         sem_actividad = kpi["semaforo_actividad"]
         sem_progreso = kpi["semaforo_progreso"]
@@ -170,8 +185,8 @@ def kpis_grupo(db: Session, tutor_id: UUID) -> dict:
 
         result.append({
             "usuario_id": str(uid),
-            "email": u.email if u else "",
-            **kpi
+            "email": usuarios.get(uid).email if uid in usuarios else "",
+            **kpi,
         })
 
     return {
@@ -403,6 +418,24 @@ def kpis_cohorte(db: Session, cohorte_id: UUID) -> dict:
             "aprendices": []
         }
 
+    usuarios = {
+        u.id: u
+        for u in db.query(Usuario).filter(Usuario.id.in_(aprendices_ids)).all()
+    }
+    apps = list(db.query(Aplicacion).filter(Aplicacion.usuario_id.in_(aprendices_ids)).all())
+    app_ids = [a.id for a in apps]
+    entrevistas = (
+        list(db.query(Entrevista).filter(Entrevista.aplicacion_id.in_(app_ids)).all())
+        if app_ids else []
+    )
+
+    apps_by_user = defaultdict(list)
+    entrevistas_by_app = defaultdict(list)
+    for app in apps:
+        apps_by_user[app.usuario_id].append(app)
+    for ent in entrevistas:
+        entrevistas_by_app[ent.aplicacion_id].append(ent)
+
     aprendices = []
     resumen = {
         "actividad": {"GREEN": 0, "YELLOW": 0, "RED": 0},
@@ -411,8 +444,24 @@ def kpis_cohorte(db: Session, cohorte_id: UUID) -> dict:
     }
 
     for uid in aprendices_ids:
-        kpi = kpis_personales(db, uid)
-        user = db.query(Usuario).filter(Usuario.id == uid).first()
+        user_apps = apps_by_user.get(uid, [])
+        user_entrevistas = []
+        for app in user_apps:
+            user_entrevistas.extend(entrevistas_by_app.get(app.id, []))
+
+        kpi = {
+            "total_aplicaciones": len(user_apps),
+            "total_entrevistas": len(user_entrevistas),
+            "tasa_conversion": round(len(user_entrevistas) / len(user_apps), 2) if user_apps else 0.0,
+            "contratado": any(a.estado == EstadoApp.CONTRATADO for a in user_apps),
+            "fallas_frecuentes": [],
+            "semaforo_actividad": semaforo_actividad(user_apps, user_entrevistas),
+            "semaforo_progreso": semaforo_progreso(user_apps, user_entrevistas),
+            "por_estado": {
+                estado.value: sum(1 for a in user_apps if a.estado == estado)
+                for estado in EstadoApp
+            },
+        }
 
         resumen["actividad"][kpi["semaforo_actividad"]] += 1
         resumen["progreso"][kpi["semaforo_progreso"]] += 1
@@ -422,7 +471,7 @@ def kpis_cohorte(db: Session, cohorte_id: UUID) -> dict:
 
         aprendices.append({
             "usuario_id": str(uid),
-            "email": user.email if user else "",
+            "email": usuarios.get(uid).email if uid in usuarios else "",
             **kpi
         })
 
@@ -445,17 +494,12 @@ def kpis_detalle_cohorte(db: Session, cohorte_id: UUID) -> dict:
     Usado por coordinador para ver detalle completo de una cohorte.
     """
 
-    cohorte = db.query(Cohorte).filter(
-        Cohorte.id == cohorte_id
-    ).first()
+    cohorte = db.query(Cohorte).filter(Cohorte.id == cohorte_id).first()
 
     if not cohorte:
         raise ValueError("Cohorte no encontrada")
 
-    perfiles = db.query(AprendizPerfil).filter(
-        AprendizPerfil.cohorte_id == cohorte_id
-    ).all()
-
+    perfiles = db.query(AprendizPerfil).filter(AprendizPerfil.cohorte_id == cohorte_id).all()
     aprendices_ids = [p.usuario_id for p in perfiles]
 
     if not aprendices_ids:
@@ -477,70 +521,56 @@ def kpis_detalle_cohorte(db: Session, cohorte_id: UUID) -> dict:
             "aprendices": [],
         }
 
-    usuarios = db.query(Usuario).filter(
-        Usuario.id.in_(aprendices_ids)
-    ).all()
+    usuarios = {
+        u.id: u
+        for u in db.query(Usuario).filter(Usuario.id.in_(aprendices_ids)).all()
+    }
+    tutores = {
+        u.id: u
+        for u in db.query(Usuario).filter(Usuario.id.in_([p.tutor_id for p in perfiles])).all()
+    }
+    apps = list(db.query(Aplicacion).filter(Aplicacion.usuario_id.in_(aprendices_ids)).all())
+    app_ids = [a.id for a in apps]
+    entrevistas = (
+        list(db.query(Entrevista).filter(Entrevista.aplicacion_id.in_(app_ids)).all())
+        if app_ids else []
+    )
 
-    usuarios_map = {u.id: u for u in usuarios}
-
-    apps = db.query(Aplicacion).filter(
-        Aplicacion.usuario_id.in_(aprendices_ids)
-    ).all()
-
-    apps_by_user = {}
+    apps_by_user = defaultdict(list)
+    entrevistas_by_app = defaultdict(list)
     for app in apps:
-        apps_by_user.setdefault(app.usuario_id, []).append(app)
-
-    entrevistas = db.query(Entrevista).filter(
-        Entrevista.aplicacion_id.in_([a.id for a in apps])
-    ).all() if apps else []
-
-    entrevistas_by_app = {}
+        apps_by_user[app.usuario_id].append(app)
     for ent in entrevistas:
-        entrevistas_by_app.setdefault(ent.aplicacion_id, []).append(ent)
+        entrevistas_by_app[ent.aplicacion_id].append(ent)
 
     detalle_aprendices = []
-
     actividad_green = 0
     progreso_green = 0
     contratados = 0
 
     for perfil in perfiles:
         uid = perfil.usuario_id
-        usuario = usuarios_map.get(uid)
-
+        usuario = usuarios.get(uid)
         user_apps = apps_by_user.get(uid, [])
-        app_ids = [a.id for a in user_apps]
-
         user_entrevistas = []
-        for app_id in app_ids:
-            user_entrevistas.extend(entrevistas_by_app.get(app_id, []))
+        for app in user_apps:
+            user_entrevistas.extend(entrevistas_by_app.get(app.id, []))
 
-        contratado = any(
-            app.estado == EstadoApp.CONTRATADO
-            for app in user_apps
-        )
-
+        contratado = any(app.estado == EstadoApp.CONTRATADO for app in user_apps)
         sem_actividad = semaforo_actividad(user_apps, user_entrevistas)
         sem_progreso = semaforo_progreso(user_apps, user_entrevistas)
 
         if contratado:
             contratados += 1
-
         if sem_actividad == "GREEN":
             actividad_green += 1
-
         if sem_progreso == "GREEN":
             progreso_green += 1
-
-        tutor = db.query(Usuario).filter(
-            Usuario.id == perfil.tutor_id
-        ).first()
 
         detalle_aprendices.append({
             "usuario_id": str(uid),
             "email": usuario.email if usuario else "",
-            "tutor_email": tutor.email if tutor else "",
+            "tutor_email": tutores.get(perfil.tutor_id).email if perfil.tutor_id in tutores else "",
             "total_aplicaciones": len(user_apps),
             "total_entrevistas": len(user_entrevistas),
             "contratado": contratado,
@@ -550,11 +580,7 @@ def kpis_detalle_cohorte(db: Session, cohorte_id: UUID) -> dict:
 
     total_aprendices = len(aprendices_ids)
     total_apps = len(apps)
-
-    tasa_contratacion = (
-        round(contratados / total_aprendices, 2)
-        if total_aprendices else 0
-    )
+    tasa_contratacion = round(contratados / total_aprendices, 2) if total_aprendices else 0
 
     return {
         "cohorte": {

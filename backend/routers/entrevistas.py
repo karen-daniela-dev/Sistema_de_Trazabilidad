@@ -15,7 +15,9 @@ from backend.models.entrevista import Entrevista
 from backend.models.usuario import Usuario
 from backend.models.enums import RolEnum, EstadoCohorte
 from backend.schemas import EntrevistaCreate, EntrevistaResponse
+from backend.services.query_service import paginate_query
 from backend.services.state_engine import aplicar_estado
+from backend.utils.pagination import PaginationParams
 
 router = APIRouter(prefix="/entrevistas", tags=["Entrevistas"])
 
@@ -34,6 +36,7 @@ def _verificar_cohorte_activa_para_entrevista(db: Session, usuario: Usuario, app
 @router.get("/por-aplicacion/{app_id}", response_model=list[EntrevistaResponse])
 def entrevistas_por_aplicacion(
     app_id: uuid.UUID,
+    pagination: PaginationParams = Depends(),
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_any),
 ):
@@ -42,7 +45,9 @@ def entrevistas_por_aplicacion(
         raise HTTPException(status_code=404, detail="Aplicación no encontrada.")
     if current_user.rol == RolEnum.APRENDIZ and app.usuario_id != current_user.id:
         raise HTTPException(status_code=403, detail="Sin permisos.")
-    return db.query(Entrevista).filter(Entrevista.aplicacion_id == app_id).order_by(Entrevista.fecha).all()
+    query = db.query(Entrevista).filter(Entrevista.aplicacion_id == app_id).order_by(Entrevista.fecha)
+    items, _ = paginate_query(query, pagination)
+    return items
 
 
 @router.get("/{entrevista_id}", response_model=EntrevistaResponse)

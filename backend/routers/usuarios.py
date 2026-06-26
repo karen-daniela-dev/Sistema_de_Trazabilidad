@@ -17,29 +17,77 @@ from backend.models.usuario import Usuario
 from backend.models.aprendiz_perfil import AprendizPerfil
 from backend.models.cohorte import Cohorte
 from backend.schemas import (
-    CrearTutorRequest, UsuarioResponse,
+    CrearTutorRequest, UsuarioResponse, UsuarioListResponse,
     PerfilAprendizCreate, PerfilAprendizUpdate, PerfilAprendizResponse,
 )
 from backend.services.email_service import send_activation_email
+from backend.services.query_service import build_page, paginate_query
+from backend.utils.pagination import PaginationParams, Page
 from backend.utils.security import create_access_token
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
 
-@router.get("/", response_model=list[UsuarioResponse])
+@router.get("/", response_model=Page[UsuarioListResponse])
 def listar_usuarios(
+    pagination: PaginationParams = Depends(),
     db: Session = Depends(get_db),
     _: Usuario = Depends(require_coordinador),
 ):
-    return db.query(Usuario).order_by(Usuario.created_at.desc()).all()
+    query = (
+        db.query(
+            Usuario.id,
+            Usuario.email,
+            Usuario.rol,
+            Usuario.estado,
+            Usuario.activo,
+            Usuario.created_at,
+        )
+        .order_by(Usuario.created_at.desc())
+    )
+    rows, total = paginate_query(query, pagination)
+    items = [
+        UsuarioListResponse(
+            id=row.id,
+            email=row.email,
+            rol=row.rol,
+            estado=row.estado,
+            activo=row.activo,
+            created_at=row.created_at,
+        )
+        for row in rows
+    ]
+    return build_page(items, total, pagination)
 
 
-@router.get("/tutores", response_model=list[UsuarioResponse])
+@router.get("/tutores", response_model=list[UsuarioListResponse])
 def listar_tutores(
     db: Session = Depends(get_db),
     _: Usuario = Depends(require_any),
 ):
-    return db.query(Usuario).filter(Usuario.rol == RolEnum.TUTOR, Usuario.activo == True).all()
+    rows = (
+        db.query(
+            Usuario.id,
+            Usuario.email,
+            Usuario.rol,
+            Usuario.estado,
+            Usuario.activo,
+            Usuario.created_at,
+        )
+        .filter(Usuario.rol == RolEnum.TUTOR, Usuario.activo == True)
+        .all()
+    )
+    return [
+        UsuarioListResponse(
+            id=row.id,
+            email=row.email,
+            rol=row.rol,
+            estado=row.estado,
+            activo=row.activo,
+            created_at=row.created_at,
+        )
+        for row in rows
+    ]
 
 
 @router.post("/tutor", response_model=UsuarioResponse, status_code=201)

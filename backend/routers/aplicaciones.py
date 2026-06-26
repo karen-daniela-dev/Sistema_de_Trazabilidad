@@ -12,9 +12,16 @@ from backend.middleware.audit_middleware import registrar
 from backend.models.aplicacion import Aplicacion
 from backend.models.aprendiz_perfil import AprendizPerfil
 from backend.models.cohorte import Cohorte
+from backend.services.query_service import paginate_query
 from backend.models.usuario import Usuario
 from backend.models.enums import RolEnum, EstadoCohorte
-from backend.schemas import AplicacionCreate, AplicacionResponse, MarcarContratadoRequest
+from backend.schemas import (
+    AplicacionCreate,
+    AplicacionResponse,
+    AplicacionListResponse,
+    MarcarContratadoRequest,
+)
+from backend.services.query_service import build_page, get_visible_applications_query
 from backend.services.state_engine import marcar_contratado
 from backend.utils.pagination import PaginationParams, Page
 
@@ -36,7 +43,7 @@ def _verificar_cohorte_activa(db: Session, usuario: Usuario) -> None:
         )
 
 
-@router.get("/", response_model=Page[AplicacionResponse])
+@router.get("/", response_model=Page[AplicacionListResponse])
 def listar_aplicaciones(
     pagination: PaginationParams = Depends(),
     db: Session = Depends(get_db),
@@ -47,25 +54,37 @@ def listar_aplicaciones(
     - TUTOR: aplicaciones de sus aprendices.
     - COORDINADOR: todas.
     """
-    query = db.query(Aplicacion)
-
-    if current_user.rol == RolEnum.APRENDIZ:
-        query = query.filter(Aplicacion.usuario_id == current_user.id)
-    elif current_user.rol == RolEnum.TUTOR:
-        aprendices_ids = [
-            p.usuario_id for p in
-            db.query(AprendizPerfil).filter(AprendizPerfil.tutor_id == current_user.id).all()
-        ]
-        query = query.filter(Aplicacion.usuario_id.in_(aprendices_ids))
-
-    total = query.count()
-    items = (
-        query.order_by(Aplicacion.created_at.desc())
-        .offset(pagination.offset)
-        .limit(pagination.size)
-        .all()
+    query = get_visible_applications_query(db, current_user)
+    query = (
+        query.with_entities(
+            Aplicacion.id,
+            Aplicacion.usuario_id,
+            Aplicacion.empresa,
+            Aplicacion.vacante,
+            Aplicacion.modalidad,
+            Aplicacion.fecha_aplicacion,
+            Aplicacion.origen,
+            Aplicacion.estado,
+            Aplicacion.created_at,
+        )
+        .order_by(Aplicacion.created_at.desc())
     )
-    return Page.build(items, total, pagination)
+    rows, total = paginate_query(query, pagination)
+    items = [
+        AplicacionListResponse(
+            id=row.id,
+            usuario_id=row.usuario_id,
+            empresa=row.empresa,
+            vacante=row.vacante,
+            modalidad=row.modalidad,
+            fecha_aplicacion=row.fecha_aplicacion,
+            origen=row.origen,
+            estado=row.estado,
+            created_at=row.created_at,
+        )
+        for row in rows
+    ]
+    return build_page(items, total, pagination)
 
 
 @router.get("/{app_id}", response_model=AplicacionResponse)

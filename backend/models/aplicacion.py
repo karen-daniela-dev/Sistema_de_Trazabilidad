@@ -1,6 +1,6 @@
 import uuid
 from datetime import date, datetime
-from sqlalchemy import String, Text, Date, ForeignKey, Enum as SAEnum, DateTime, func
+from sqlalchemy import String, Text, Date, ForeignKey, Enum as SAEnum, DateTime, func, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database import Base
@@ -9,6 +9,10 @@ from backend.models.enums import ModalidadApp, OrigenApp, EstadoApp
 #models/aplicacion.py
 class Aplicacion(Base):
     __tablename__ = "aplicaciones"
+    __table_args__ = (
+        Index("ix_aplicaciones_usuario_estado", "usuario_id", "estado"),
+        Index("ix_aplicaciones_fecha_usuario", "fecha_aplicacion", "usuario_id"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -22,7 +26,7 @@ class Aplicacion(Base):
         SAEnum(ModalidadApp, name="modalidad_app"), nullable=False
     )
     link: Mapped[str | None] = mapped_column(Text, nullable=True)
-    fecha_aplicacion: Mapped[date] = mapped_column(Date, nullable=False, default=date.today)
+    fecha_aplicacion: Mapped[date] = mapped_column(Date, nullable=False, default=date.today, index=True)
     origen: Mapped[OrigenApp] = mapped_column(
         SAEnum(OrigenApp, name="origen_app"), nullable=False
     )
@@ -31,6 +35,7 @@ class Aplicacion(Base):
         SAEnum(EstadoApp, name="estado_app"),
         nullable=False,
         default=EstadoApp.APLICADO,
+        index=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -42,7 +47,7 @@ class Aplicacion(Base):
     # Relaciones
     usuario: Mapped["Usuario"] = relationship("Usuario", back_populates="aplicaciones")
     entrevistas: Mapped[list["Entrevista"]] = relationship(
-        "Entrevista", back_populates="aplicacion", cascade="all, delete-orphan"
+        "Entrevista", back_populates="aplicacion", cascade="all, delete-orphan", lazy="selectin"
     )
 
     def __repr__(self) -> str:

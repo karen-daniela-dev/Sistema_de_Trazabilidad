@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import String, ForeignKey
+from sqlalchemy import String, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database import Base
@@ -9,6 +9,10 @@ from backend.database import Base
 
 class AprendizPerfil(Base):
     __tablename__ = "aprendiz_perfil"
+    __table_args__ = (
+        Index("ix_aprendiz_perfil_tutor", "tutor_id"),
+        Index("ix_aprendiz_perfil_cohorte", "cohorte_id"),
+    )
 
     usuario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("usuarios.id"), primary_key=True
@@ -17,19 +21,19 @@ class AprendizPerfil(Base):
     telefono_emergencia: Mapped[str | None] = mapped_column(String(20), nullable=True)
     ciudad: Mapped[str | None] = mapped_column(String(100), nullable=True)
     cohorte_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("cohortes.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("cohortes.id"), nullable=False, index=True
     )
     tutor_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False, index=True
     )
 
     # Relaciones
     usuario: Mapped["Usuario"] = relationship(
-        "Usuario", back_populates="perfil", foreign_keys=[usuario_id]
+        "Usuario", back_populates="perfil", foreign_keys=[usuario_id], lazy="selectin"
     )
-    cohorte: Mapped["Cohorte"] = relationship("Cohorte", back_populates="aprendices")
+    cohorte: Mapped["Cohorte"] = relationship("Cohorte", back_populates="aprendices", lazy="selectin")
     tutor: Mapped["Usuario"] = relationship(
-        "Usuario", back_populates="tutores_asignados", foreign_keys=[tutor_id]
+        "Usuario", back_populates="tutores_asignados", foreign_keys=[tutor_id], lazy="selectin"
     )
 
     def __repr__(self) -> str:

@@ -79,6 +79,16 @@ class UsuarioResponse(BaseModel):
     last_login: Optional[datetime] = None
 
 
+class UsuarioListResponse(BaseModel):
+    model_config = {"from_attributes": True}
+    id: uuid.UUID
+    email: str
+    rol: RolEnum
+    estado: EstadoUsuario
+    activo: bool
+    created_at: datetime
+
+
 # ── Cohortes ──────────────────────────────────────────────────────────────────
 
 class CohorteCreate(BaseModel):
@@ -103,6 +113,18 @@ class CohorteUpdate(BaseModel):
 
 
 class CohorteResponse(BaseModel):
+    model_config = {"from_attributes": True}
+    id: uuid.UUID
+    nombre: str
+    fecha_inicio: date
+    fecha_fin: date
+    estado: EstadoCohorte
+    meta_contratacion: int
+    permitir_extension: bool
+    created_at: datetime
+
+
+class CohorteListResponse(BaseModel):
     model_config = {"from_attributes": True}
     id: uuid.UUID
     nombre: str
@@ -141,6 +163,16 @@ class PerfilAprendizResponse(BaseModel):
     ciudad: Optional[str] = None
 
 
+class AlertaResponse(BaseModel):
+    model_config = {"from_attributes": True}
+    id: uuid.UUID
+    target_id: uuid.UUID
+    target_type: str
+    mensaje: str
+    leida: bool
+    created_at: datetime
+
+
 # ── Aplicaciones ──────────────────────────────────────────────────────────────
 
 class AplicacionCreate(BaseModel):
@@ -172,6 +204,19 @@ class AplicacionResponse(BaseModel):
     estado: EstadoApp
     created_at: datetime
     updated_at: datetime
+
+
+class AplicacionListResponse(BaseModel):
+    model_config = {"from_attributes": True}
+    id: uuid.UUID
+    usuario_id: uuid.UUID
+    empresa: str
+    vacante: str
+    modalidad: ModalidadApp
+    fecha_aplicacion: date
+    origen: OrigenApp
+    estado: EstadoApp
+    created_at: datetime
 
 
 class MarcarContratadoRequest(BaseModel):

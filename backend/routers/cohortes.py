@@ -10,18 +10,48 @@ from backend.dependencies.auth import require_coordinador, require_any
 from backend.middleware.audit_middleware import registrar
 from backend.models.cohorte import Cohorte
 from backend.models.usuario import Usuario
-from backend.schemas import CohorteCreate, CohorteUpdate, CohorteResponse
+from backend.schemas import CohorteCreate, CohorteUpdate, CohorteResponse, CohorteListResponse
 from backend.services.cohort_engine import fecha_fin_desde_inicio, sincronizar_estados_cohortes
+from backend.services.query_service import paginate_query
+from backend.utils.pagination import PaginationParams, Page
 
 router = APIRouter(prefix="/cohortes", tags=["Cohortes"])
 
 
-@router.get("/", response_model=list[CohorteResponse])
+@router.get("/", response_model=Page[CohorteListResponse])
 def listar_cohortes(
+    pagination: PaginationParams = Depends(),
     db: Session = Depends(get_db),
     _: Usuario = Depends(require_any),
 ):
-    return db.query(Cohorte).order_by(Cohorte.fecha_inicio.desc()).all()
+    query = (
+        db.query(
+            Cohorte.id,
+            Cohorte.nombre,
+            Cohorte.fecha_inicio,
+            Cohorte.fecha_fin,
+            Cohorte.estado,
+            Cohorte.meta_contratacion,
+            Cohorte.permitir_extension,
+            Cohorte.created_at,
+        )
+        .order_by(Cohorte.fecha_inicio.desc())
+    )
+    rows, total = paginate_query(query, pagination)
+    items = [
+        CohorteListResponse(
+            id=row.id,
+            nombre=row.nombre,
+            fecha_inicio=row.fecha_inicio,
+            fecha_fin=row.fecha_fin,
+            estado=row.estado,
+            meta_contratacion=row.meta_contratacion,
+            permitir_extension=row.permitir_extension,
+            created_at=row.created_at,
+        )
+        for row in rows
+    ]
+    return Page.build(items, total, pagination)
 
 
 @router.get("/{cohorte_id}", response_model=CohorteResponse)

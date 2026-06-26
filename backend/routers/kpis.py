@@ -16,6 +16,8 @@ from backend.services import kpi_service, alert_engine
 from backend.models.aprendiz_perfil import AprendizPerfil
 from backend.models.alerta import Alerta
 from backend.models.cohorte import Cohorte
+from backend.schemas import AlertaResponse
+from backend.services.query_service import get_tutor_aprendiz_ids
 
 router = APIRouter(prefix="/kpis", tags=["KPIs y Dashboards"])
 
@@ -47,7 +49,7 @@ def kpis_globales(
     return kpi_service.kpis_globales(db)
 
 
-@router.get("/alertas")
+@router.get("/alertas", response_model=list[AlertaResponse])
 def mis_alertas(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_any),
@@ -63,16 +65,24 @@ def mis_alertas(
             Alerta.target_type == "APRENDIZ",
         )
     elif current_user.rol == RolEnum.TUTOR:
-        aprendices_ids = [
-            p.usuario_id for p in
-            db.query(AprendizPerfil).filter(AprendizPerfil.tutor_id == current_user.id).all()
-        ]
+        aprendices_ids = get_tutor_aprendiz_ids(db, current_user.id)
         query = query.filter(
             Alerta.target_id.in_([current_user.id] + aprendices_ids)
         )
     # Coordinador ve todas
 
-    return query.order_by(Alerta.created_at.desc()).limit(50).all()
+    rows = query.order_by(Alerta.created_at.desc()).limit(50).all()
+    return [
+        AlertaResponse(
+            id=row.id,
+            target_id=row.target_id,
+            target_type=row.target_type,
+            mensaje=row.mensaje,
+            leida=row.leida,
+            created_at=row.created_at,
+        )
+        for row in rows
+    ]
 
 
 @router.patch("/alertas/{alerta_id}/leer", status_code=200)

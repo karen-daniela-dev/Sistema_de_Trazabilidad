@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Boolean, ForeignKey, DateTime, func, Text
+from sqlalchemy import String, Boolean, ForeignKey, DateTime, func, Text, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB, INET
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database import Base
@@ -27,6 +27,9 @@ class AuditLog(Base):
 
 class Alerta(Base):
     __tablename__ = "alertas"
+    __table_args__ = (
+        Index("ix_alertas_target_leida_created", "target_id", "target_type", "leida", "created_at"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -34,8 +37,8 @@ class Alerta(Base):
     tipo: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     mensaje: Mapped[str] = mapped_column(Text, nullable=False)
     target_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
-    target_type: Mapped[str] = mapped_column(String(20), nullable=False)  # APRENDIZ | TUTOR | COHORTE
-    leida: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    target_type: Mapped[str] = mapped_column(String(20), nullable=False, index=True)  # APRENDIZ | TUTOR | COHORTE
+    leida: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

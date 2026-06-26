@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import (
     Boolean, SmallInteger, Text, DateTime, ForeignKey,
-    Enum as SAEnum, func
+    Enum as SAEnum, func, Index
 )
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -15,6 +15,9 @@ from backend.models.enums import (
 
 class Entrevista(Base):
     __tablename__ = "entrevistas"
+    __table_args__ = (
+        Index("ix_entrevistas_aplicacion_fecha", "aplicacion_id", "fecha"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
