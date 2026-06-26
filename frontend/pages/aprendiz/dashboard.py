@@ -378,18 +378,6 @@ def _bloque_reflexiones(apps, entrevistas_por_app):
     end = start + page_size
     pagina = filas[start:end]
 
-    col_prev, col_center, col_next = st.columns([1, 2, 1])
-    with col_prev:
-        if st.button("⬅️ Anterior", disabled=page <= 1, use_container_width=True):
-            st.session_state.reflexiones_page = max(1, page - 1)
-            st.rerun()
-    with col_center:
-        st.caption(f"Página {page} de {total_pages}")
-    with col_next:
-        if st.button("Siguiente ➡️", disabled=page >= total_pages, use_container_width=True):
-            st.session_state.reflexiones_page = min(total_pages, page + 1)
-            st.rerun()
-
     for f in pagina:
         auto_val = f["auto"]
         auto_color = "#22c55e" if auto_val != "—" and int(auto_val) >= 4 else "#f59e0b" if auto_val != "—" and int(auto_val) >= 3 else "#ef4444"
@@ -422,6 +410,23 @@ def _bloque_reflexiones(apps, entrevistas_por_app):
                 </div>""",
                 unsafe_allow_html=True,
             )
+
+    if total_pages > 1:
+        st.markdown("""<div style='margin-top:18px;padding-top:12px;border-top:1px solid #e2e8f0;'></div>""", unsafe_allow_html=True)
+        col_prev, col_center, col_next = st.columns([1, 2, 1])
+        with col_prev:
+            if st.button("← Anterior", key="reflexiones_prev", disabled=page <= 1, use_container_width=True):
+                st.session_state.reflexiones_page = max(1, page - 1)
+                st.rerun()
+        with col_center:
+            st.markdown(
+                f"<div style='text-align:center;color:#475569;font-size:0.92rem;font-weight:600'>Página {page} de {total_pages}</div>",
+                unsafe_allow_html=True,
+            )
+        with col_next:
+            if st.button("Siguiente →", key="reflexiones_next", disabled=page >= total_pages, use_container_width=True):
+                st.session_state.reflexiones_page = min(total_pages, page + 1)
+                st.rerun()
 
 
 # ── Bloque 5: Línea de tiempo ─────────────────────────────────────────────────

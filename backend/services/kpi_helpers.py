@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Iterable
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from backend.models.aplicacion import Aplicacion
 from backend.models.entrevista import Entrevista
@@ -18,27 +18,25 @@ def load_apps_and_entrevistas_for_users(
 ) -> tuple[defaultdict[UUID, list[Aplicacion]], defaultdict[UUID, list[Entrevista]]]:
     """Carga aplicaciones y entrevistas de uno o varios usuarios en pocas consultas."""
     if user_ids is None:
-        apps = db.query(Aplicacion).all()
+        apps = db.query(Aplicacion).options(selectinload(Aplicacion.entrevistas)).all()
     else:
         ids = list(user_ids)
         if not ids:
             return defaultdict(list), defaultdict(list)
-        apps = db.query(Aplicacion).filter(Aplicacion.usuario_id.in_(ids)).all()
-
-    app_ids = [app.id for app in apps]
-    entrevistas = (
-        db.query(Entrevista).filter(Entrevista.aplicacion_id.in_(app_ids)).all()
-        if app_ids else []
-    )
+        apps = (
+            db.query(Aplicacion)
+            .options(selectinload(Aplicacion.entrevistas))
+            .filter(Aplicacion.usuario_id.in_(ids))
+            .all()
+        )
 
     apps_by_user: defaultdict[UUID, list[Aplicacion]] = defaultdict(list)
     entrevistas_by_app: defaultdict[UUID, list[Entrevista]] = defaultdict(list)
 
     for app in apps:
         apps_by_user[app.usuario_id].append(app)
-
-    for entrevista in entrevistas:
-        entrevistas_by_app[entrevista.aplicacion_id].append(entrevista)
+        for entrevista in app.entrevistas:
+            entrevistas_by_app[entrevista.aplicacion_id].append(entrevista)
 
     return apps_by_user, entrevistas_by_app
 

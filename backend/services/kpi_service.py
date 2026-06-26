@@ -96,12 +96,9 @@ def build_kpi_context(db: Session) -> dict:
 # ── KPIs personales (APRENDIZ) ────────────────────────────────────────────────
 
 def kpis_personales(db: Session, usuario_id: UUID) -> dict:
-    apps = list(db.query(Aplicacion).filter(Aplicacion.usuario_id == usuario_id).all())
-    app_ids = [app.id for app in apps]
-    entrevistas = (
-        list(db.query(Entrevista).filter(Entrevista.aplicacion_id.in_(app_ids)).all())
-        if app_ids else []
-    )
+    apps_by_user, entrevistas_by_app = load_apps_and_entrevistas_for_users(db, [usuario_id])
+    apps = apps_by_user.get(usuario_id, [])
+    entrevistas = collect_user_entrevistas(apps, entrevistas_by_app)
     return {
         **build_user_kpi(apps, entrevistas),
         "total_aplicaciones": len(apps),
@@ -371,19 +368,7 @@ def kpis_cohorte(db: Session, cohorte_id: UUID) -> dict:
         u.id: u
         for u in db.query(Usuario).filter(Usuario.id.in_(aprendices_ids)).all()
     }
-    apps = list(db.query(Aplicacion).filter(Aplicacion.usuario_id.in_(aprendices_ids)).all())
-    app_ids = [a.id for a in apps]
-    entrevistas = (
-        list(db.query(Entrevista).filter(Entrevista.aplicacion_id.in_(app_ids)).all())
-        if app_ids else []
-    )
-
-    apps_by_user = defaultdict(list)
-    entrevistas_by_app = defaultdict(list)
-    for app in apps:
-        apps_by_user[app.usuario_id].append(app)
-    for ent in entrevistas:
-        entrevistas_by_app[ent.aplicacion_id].append(ent)
+    apps_by_user, entrevistas_by_app = load_apps_and_entrevistas_for_users(db, aprendices_ids)
 
     aprendices = []
     resumen = {
@@ -515,7 +500,7 @@ def kpis_detalle_cohorte(db: Session, cohorte_id: UUID) -> dict:
         })
 
     total_aprendices = len(aprendices_ids)
-    total_apps = len(apps)
+    total_apps = sum(len(apps) for apps in apps_by_user.values())
     tasa_contratacion = round(contratados / total_aprendices, 2) if total_aprendices else 0
 
     return {
@@ -803,67 +788,10 @@ def kpis_tutor_cohorte(
 
     }
 
-    apps = (
+    apps_by_user, entrevistas_by_app = load_apps_and_entrevistas_for_users(db, usuario_ids)
 
-        db.query(Aplicacion)
-
-        .filter(
-
-            Aplicacion.usuario_id.in_(usuario_ids)
-
-        )
-
-        .all()
-
-    )
-
-    apps_user = {}
-
-    for app in apps:
-
-        apps_user.setdefault(
-
-            app.usuario_id,
-
-            [],
-
-        ).append(app)
-
-    entrevistas = (
-
-        db.query(Entrevista)
-
-        .filter(
-
-            Entrevista.aplicacion_id.in_(
-
-                [
-
-                    a.id
-
-                    for a in apps
-
-                ]
-
-            )
-
-        )
-
-        .all()
-
-    )
-
-    entrevistas_app = {}
-
-    for e in entrevistas:
-
-        entrevistas_app.setdefault(
-
-            e.aplicacion_id,
-
-            [],
-
-        ).append(e)
+    apps_user = dict(apps_by_user)
+    entrevistas_app = dict(entrevistas_by_app)
 
     data = []
 
