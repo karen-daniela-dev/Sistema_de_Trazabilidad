@@ -1,4 +1,5 @@
 """
+routes/kpis.py
 Router de KPIs — datos por rol.
 """
 import uuid
@@ -14,6 +15,7 @@ from backend.models.enums import RolEnum
 from backend.services import kpi_service, alert_engine
 from backend.models.aprendiz_perfil import AprendizPerfil
 from backend.models.alerta import Alerta
+from backend.models.cohorte import Cohorte
 
 router = APIRouter(prefix="/kpis", tags=["KPIs y Dashboards"])
 
@@ -85,3 +87,66 @@ def marcar_alerta_leida(
     alerta.leida = True
     db.commit()
     return {"message": "Alerta marcada como leída."}
+
+@router.get("/cohortes")
+def kpis_cohortes(
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_coordinador),
+):
+    return kpi_service.kpis_cohortes(db)
+
+@router.get("/cohorte/{cohorte_id}")
+def kpis_cohorte_detalle(
+    cohorte_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_coordinador),
+):
+    return kpi_service.kpis_detalle_cohorte(db, cohorte_id)
+
+
+@router.get("/cohorte/{cohorte_id}/tutores")
+def kpis_tutores_por_cohorte(
+    cohorte_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_coordinador),
+):
+    """
+    Ranking únicamente de los tutores pertenecientes
+    a una cohorte.
+    """
+    return kpi_service.kpis_tutores_por_cohorte(
+        db,
+        cohorte_id,
+    )
+
+@router.get("/tutores")
+def kpis_tutores(
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_coordinador),
+):
+    return kpi_service.kpis_tutores(db)
+
+@router.get("/tutores/{tutor_id}")
+def detalle_tutor(
+    tutor_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_coordinador),
+):
+    return kpi_service.kpis_grupo(db, tutor_id)
+
+@router.get("/cohorte/{cohorte_id}/tutores/{tutor_id}")
+def detalle_tutor_cohorte(
+    cohorte_id: uuid.UUID,
+    tutor_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_coordinador),
+):
+    """
+    Devuelve únicamente los aprendices
+    del tutor dentro de una cohorte.
+    """
+    return kpi_service.kpis_tutor_cohorte(
+        db,
+        cohorte_id,
+        tutor_id,
+    )

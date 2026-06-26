@@ -1,4 +1,5 @@
 """
+frontend/app.py
 Punto de entrada Streamlit.
 Enruta a la página correcta según el rol del usuario autenticado.
 """

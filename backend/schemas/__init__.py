@@ -1,4 +1,5 @@
 """
+schemas/__init__.py
 Schemas Pydantic — validación de entrada y serialización de salida.
 Separados de los modelos ORM para mantener independencia de capas.
 """

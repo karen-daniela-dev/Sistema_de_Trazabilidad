@@ -4,6 +4,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database import Base
 
+#models/aprendiz_perfil.py
+
 
 class AprendizPerfil(Base):
     __tablename__ = "aprendiz_perfil"

@@ -190,3 +190,100 @@ def panel_alertas(alertas: list[dict]):
                 </div>""",
                 unsafe_allow_html=True,
             )
+
+
+def chart_funnel_global(kpis: dict):
+    labels = ["Aprendices", "Aplicaciones", "Entrevistas", "Contratados"]
+    values = [
+        kpis.get("total_aprendices", 0),
+        kpis.get("total_aplicaciones", 0),
+        kpis.get("total_entrevistas", 0),
+        kpis.get("contratados_total", 0),
+    ]
+
+    fig = go.Figure(go.Funnel(
+        y=labels,
+        x=values,
+        textinfo="value+percent initial"
+    ))
+
+    fig.update_layout(
+        title="Embudo Global",
+        height=420
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+    
+def chart_cohortes_comparativo(cohortes):
+    if not cohortes:
+        st.info("Sin cohortes.")
+        return
+
+    df = pd.DataFrame(cohortes)
+
+    fig = go.Figure()
+    fig.add_bar(name="Contratados", x=df["nombre"], y=df["contratados"])
+    fig.add_bar(name="Meta", x=df["nombre"], y=df["meta"])
+
+    fig.update_layout(
+        title="Cohortes: Contratados vs Meta",
+        barmode="group",
+        height=420
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def chart_ranking_tutores(ranking):
+    if not ranking:
+        st.info("Sin tutores.")
+        return
+
+    df = pd.DataFrame(ranking[:10])
+
+    fig = px.bar(
+        df,
+        x="email",
+        y="score",
+        title="Top Tutores",
+        text="score"
+    )
+
+    fig.update_layout(height=400)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+
+    
+def chart_estado_apps(kpis):
+    labels = ["Aplicaciones", "Entrevistas", "Contratados"]
+    values = [
+        kpis.get("total_aplicaciones", 0),
+        kpis.get("total_entrevistas", 0),
+        kpis.get("contratados_total", 0),
+    ]
+
+    fig = px.pie(
+        names=labels,
+        values=values,
+        title="Distribución Global"
+    )
+
+    fig.update_layout(height=350)
+    st.plotly_chart(fig, use_container_width=True)
+    
+def chart_top_fallas(fallas):
+    if not fallas:
+        st.info("Sin datos.")
+        return
+
+    df = pd.DataFrame(fallas, columns=["Falla", "Cantidad"])
+
+    fig = px.bar(
+        df,
+        x="Falla",
+        y="Cantidad",
+        title="Top Fallas"
+    )
+
+    fig.update_layout(height=350)
+    st.plotly_chart(fig, use_container_width=True)
+

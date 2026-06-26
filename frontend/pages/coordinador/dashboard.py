@@ -1,139 +1,696 @@
 """
-Panel del Coordinador — KPIs globales, cohortes y tutores.
+Dashboard Coordinador Enterprise
+
+Arquitectura:
+
+Cohorte
+    ↓
+KPIs
+    ↓
+Embudo
+    ↓
+Ranking Tutores
+    ↓
+Aprendices Tutor
+    ↓
+Detalle Aprendiz
+
+Toda la información depende
+de la cohorte seleccionada.
 """
+
+from __future__ import annotations
+
 import streamlit as st
 import pandas as pd
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
 from frontend import api_client as api
-from frontend.components.ui import (
-    kpi_card, chart_cohortes_barras, panel_alertas, mostrar_semaforo
+
+from frontend.components.cohorte_selector import (
+    render as cohorte_selector,
 )
 
-SEMAFORO_EMOJI = {"GREEN": "🟢", "YELLOW": "🟡", "RED": "🔴"}
+from frontend.components.dashboard_state_coor import (
+    get_cohorte,
+    get_tutor,
+    set_tutor,
+    clear_tutor,
+)
 
+from frontend.components.ui import (
+    kpi_card,
+    panel_alertas,
+    chart_funnel_global,
+    chart_ranking_tutores,
+)
+
+# ============================================================
+# CACHE
+# ============================================================
+
+@st.cache_data(ttl=120)
+def load_dashboard_data(cohorte_id: str):
+
+    return {
+
+        "detalle": api.get_kpis_detalle_cohorte(
+            cohorte_id
+        ),
+
+        "ranking": api.get_kpis_tutores_cohorte(
+            cohorte_id
+        ),
+
+        "alertas": api.get_alertas(),
+
+    }
+    
+# ============================================================
+# KPIs
+# ============================================================
+
+def render_kpis(stats: dict):
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    kpi_card(
+        c1,
+        "Aprendices",
+        stats["total_aprendices"],
+    )
+
+    kpi_card(
+        c2,
+        "Aplicaciones",
+        stats["total_aplicaciones"],
+    )
+
+    kpi_card(
+        c3,
+        "Contratados",
+        stats["contratados"],
+        color="#16a34a",
+    )
+
+    kpi_card(
+        c4,
+        "Tasa",
+
+        f"{stats['tasa_contratacion']:.0%}",
+
+        color="#2563eb",
+
+    )
+# ============================================================
+# Analytics
+# ============================================================
+
+def render_analytics(
+    stats: dict,
+    aprendices: list,
+    alertas: list,
+):
+
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+
+        chart_funnel_global({
+
+            "total_aprendices":
+                stats["total_aprendices"],
+
+            "total_aplicaciones":
+                stats["total_aplicaciones"],
+
+            "total_entrevistas":
+
+                sum(
+
+                    a["total_entrevistas"]
+
+                    for a in aprendices
+
+                ),
+
+            "contratados_total":
+                stats["contratados"],
+
+        })
+
+    with col2:
+
+        panel_alertas(alertas)
+# ============================================================
+# Ranking Tutores
+# ============================================================
+
+def render_ranking(
+    ranking,
+):
+
+    st.subheader(
+        "👨‍🏫 Tutores"
+    )
+
+    chart_ranking_tutores(
+        ranking
+    )
+
+    st.caption(
+        "Seleccione un tutor para ver únicamente sus aprendices."
+    )
+
+# ============================================================
+# Tutor Selector
+# ============================================================
+
+def render_tutores(ranking):
+
+    if not ranking:
+
+        st.info(
+            "No existen tutores asignados a esta cohorte."
+        )
+
+        clear_tutor()
+
+        return None
+
+    nombres = [
+
+        f"{t['email']}  ({t['total_aprendices']} aprendices)"
+
+        for t in ranking
+
+    ]
+
+    actual = get_tutor()
+
+    default = 0
+
+    if actual:
+
+        for i, tutor in enumerate(ranking):
+
+            if tutor["tutor_id"] == actual["tutor_id"]:
+
+                default = i
+
+                break
+
+    indice = st.selectbox(
+
+        "Tutor",
+
+        options=range(len(ranking)),
+
+        index=default,
+
+        format_func=lambda x: nombres[x],
+
+    )
+
+    seleccionado = ranking[indice]
+
+    set_tutor(seleccionado)
+
+    return seleccionado
+
+# ============================================================
+# Aprendices
+# ============================================================
+
+def render_aprendices(aprendices):
+
+    if not aprendices:
+
+        st.info(
+            "Este tutor no tiene aprendices."
+        )
+
+        return
+
+    filas = []
+
+    for a in aprendices:
+
+        filas.append(
+
+            {
+
+                "Aprendiz":
+                    a["email"],
+
+                "Apps":
+                    a["apps"],
+
+                "Entrevistas":
+                    a["entrevistas"],
+
+                "Contratado":
+
+                    "✅"
+
+                    if a["contratado"]
+
+                    else "",
+
+                "Actividad":
+                    a["actividad"],
+
+                "Progreso":
+                    a["progreso"],
+
+            }
+
+        )
+
+    st.dataframe(
+
+        pd.DataFrame(filas),
+
+        use_container_width=True,
+
+        hide_index=True,
+
+    )
+
+# ============================================================
+# Tutor Dashboard
+# ============================================================
+
+def render_tutor_dashboard(cohorte_id):
+
+    tutor = get_tutor()
+
+    if tutor is None:
+
+        return
+
+    with st.spinner(
+
+        "Cargando tutor..."
+
+    ):
+
+        detalle = api.get_kpi_tutor_cohorte(
+
+            cohorte_id,
+
+            tutor["tutor_id"],
+
+        )
+
+    if not detalle:
+
+        return
+
+    st.divider()
+
+    st.subheader(
+
+        f"👨‍🏫 {detalle['tutor']['email']}"
+
+    )
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.metric(
+
+        "Aprendices",
+
+        detalle["stats"]["aprendices"],
+
+    )
+
+    c2.metric(
+
+        "Aplicaciones",
+
+        detalle["stats"]["apps"],
+
+    )
+
+    c3.metric(
+
+        "Entrevistas",
+
+        detalle["stats"]["entrevistas"],
+
+    )
+
+    c4.metric(
+
+        "Contratados",
+
+        detalle["stats"]["contratados"],
+
+    )
+
+    render_aprendices(
+    detalle["aprendices"]
+    )
+
+    render_selector_aprendiz(
+        detalle["aprendices"]
+    )
+
+    render_aprendiz_dashboard()
+    
+# ============================================================
+# Dashboard
+# ============================================================
 
 def show():
-    st.title("🏢 Panel del Coordinador")
 
-    tab_global, tab_cohortes, tab_tutores, tab_gestionar, tab_alertas = st.tabs([
-        "KPIs globales", "Cohortes", "Tutores", "⚙️ Gestionar", "🔔 Alertas"
-    ])
+    st.title("🏢 Dashboard Coordinador")
 
-    # ── KPIs Globales ─────────────────────────────────────────────────────────
-    with tab_global:
-        with st.spinner("Cargando datos globales..."):
-            kpis = api.get_kpis_globales()
+    st.caption(
+        "Centro de Control de Cohortes"
+    )
 
-        if not kpis:
-            return
+    st.divider()
 
-        c1, c2, c3, c4 = st.columns(4)
-        kpi_card(c1, "Total aprendices", kpis.get("total_aprendices", 0))
-        kpi_card(c2, "Aplicaciones", kpis.get("total_aplicaciones", 0))
-        kpi_card(c3, "Entrevistas", kpis.get("total_entrevistas", 0))
-        tasa = kpis.get("tasa_contratacion_global", 0)
-        kpi_card(c4, "Tasa contratación", f"{tasa:.1%}", color="#16a34a")
+    ####################################################################
+    # Contexto
+    ####################################################################
 
-        st.divider()
-        chart_cohortes_barras(kpis.get("cohortes", []))
+    cohorte_selector()
 
-    # ── Cohortes ──────────────────────────────────────────────────────────────
-    with tab_cohortes:
-        cohortes = api.get_cohortes()
-        if cohortes:
-            filas = []
-            for c in cohortes:
-                sem = SEMAFORO_EMOJI.get(c.get("semaforo", "GREEN"), "⚪")
-                filas.append({
-                    "Semáforo": sem,
-                    "Nombre": c["nombre"],
-                    "Estado": c["estado"],
-                    "Inicio": c["fecha_inicio"],
-                    "Fin": c["fecha_fin"],
-                    "Meta": c["meta_contratacion"],
-                    "Contratados": c.get("contratados", 0),
-                    "% Meta": f"{c.get('pct_meta', 0):.0%}",
-                    "Aprendices": c.get("total_aprendices", 0),
-                })
-            st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
+    cohorte = get_cohorte()
 
-        st.divider()
-        st.subheader("Crear nueva cohorte")
-        with st.form("form_cohorte"):
-            nombre = st.text_input("Nombre de la cohorte *")
-            col1, col2 = st.columns(2)
-            with col1:
-                fecha_inicio = st.date_input("Fecha de inicio *")
-                meta = st.number_input("Meta de contratación *", min_value=1, value=10)
-            with col2:
-                extension = st.checkbox("Permitir extensión al finalizar")
-            submit_c = st.form_submit_button("Crear cohorte", type="primary")
+    if cohorte is None:
 
-        if submit_c:
-            if not nombre.strip():
-                st.error("El nombre es obligatorio.")
-            else:
-                result = api.crear_cohorte({
-                    "nombre": nombre.strip(),
-                    "fecha_inicio": str(fecha_inicio),
-                    "meta_contratacion": meta,
-                    "permitir_extension": extension,
-                })
-                if result:
-                    st.success(f"✅ Cohorte '{nombre}' creada. Finaliza: {result['fecha_fin']}")
-                    st.rerun()
+        st.info(
+            "Seleccione una cohorte."
+        )
 
-    # ── Tutores ───────────────────────────────────────────────────────────────
-    with tab_tutores:
-        kpis = api.get_kpis_globales()
-        ranking = kpis.get("ranking_tutores", []) if kpis else []
+        return
 
-        if ranking:
-            st.subheader("🏆 Ranking de tutores")
-            filas = []
-            for i, t in enumerate(ranking, 1):
-                filas.append({
-                    "Posición": f"#{i}",
-                    "Email": t["email"],
-                    "Aprendices": t["total_aprendices"],
-                    "Contratados": t["contratados"],
-                    "En verde 🟢": t["semaforo_verde"],
-                })
-            st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
+    ####################################################################
+    # Dashboard
+    ####################################################################
 
-        st.divider()
-        st.subheader("Registrar nuevo tutor")
-        with st.form("form_tutor"):
-            email_t = st.text_input("Email del tutor *")
-            submit_t = st.form_submit_button("Crear tutor y enviar activación", type="primary")
+    with st.spinner(
+        "Construyendo dashboard..."
+    ):
 
-        if submit_t:
-            if not email_t.strip():
-                st.error("El email es obligatorio.")
-            else:
-                result = api.crear_tutor(email_t.strip())
-                if result:
-                    st.success(f"✅ Tutor creado. Email de activación enviado a {email_t}")
+        dashboard = load_dashboard_data(
 
-    # ── Gestionar ─────────────────────────────────────────────────────────────
-    with tab_gestionar:
-        st.subheader("⚙️ Herramientas de administración")
-        if st.button("🔄 Sincronizar estados de cohortes"):
-            import requests
-            token = st.session_state.get("token", "")
-            r = requests.post(
-                f"{os.getenv('API_BASE_URL', 'http://localhost:8000')}/cohortes/sincronizar-estados",
-                headers={"Authorization": f"Bearer {token}"},
+            str(cohorte["id"])
+
+        )
+
+    if dashboard is None:
+
+        st.error(
+            "No fue posible cargar el dashboard."
+        )
+
+        return
+
+    detalle = dashboard["detalle"]
+
+    ranking = dashboard["ranking"]
+
+    alertas = dashboard["alertas"]
+
+    if not detalle:
+
+        st.warning(
+            "La cohorte seleccionada aún no posee información."
+        )
+
+        return
+
+    stats = detalle["stats"]
+
+    aprendices = detalle["aprendices"]
+
+    ####################################################################
+    # Header Cohorte
+    ####################################################################
+
+    with st.container(border=True):
+
+        c1, c2, c3 = st.columns([2,1,1])
+
+        with c1:
+
+            st.subheader(
+                cohorte["nombre"]
             )
-            if r.ok:
-                n = r.json().get("cohortes_actualizadas", 0)
-                st.success(f"✅ {n} cohorte(s) actualizada(s).")
-            else:
-                st.error("Error al sincronizar.")
 
-    # ── Alertas ───────────────────────────────────────────────────────────────
-    with tab_alertas:
-        alertas = api.get_alertas()
-        panel_alertas(alertas)
+            st.caption(
+                f"Estado: {cohorte['estado']}"
+            )
+
+        with c2:
+
+            st.metric(
+                "Meta",
+                cohorte["meta_contratacion"]
+            )
+
+        with c3:
+
+            st.metric(
+                "Finaliza",
+                cohorte["fecha_fin"]
+            )
+
+    st.divider()
+
+    ####################################################################
+    # KPIs
+    ####################################################################
+
+    render_kpis(
+        stats
+    )
+
+    st.divider()
+
+    ####################################################################
+    # Analytics
+    ####################################################################
+
+    render_analytics(
+
+        stats,
+
+        aprendices,
+
+        alertas,
+
+    )
+
+    st.divider()
+
+    ####################################################################
+    # Tutores
+    ####################################################################
+
+    render_ranking(
+        ranking
+    )
+
+    tutor = render_tutores(
+        ranking
+    )
+
+    ####################################################################
+    # Drill Down Tutor
+    ####################################################################
+
+    if tutor:
+
+        render_tutor_dashboard(
+
+            str(
+                cohorte["id"]
+            )
+
+        )
+# ============================================================
+# Aprendiz Selector
+# ============================================================
+
+from frontend.components.dashboard_state_coor import (
+    get_aprendiz,
+    set_aprendiz,
+)
+
+
+def render_selector_aprendiz(aprendices):
+
+    if not aprendices:
+        return None
+
+    actual = get_aprendiz()
+
+    default = 0
+
+    if actual:
+
+        for i, a in enumerate(aprendices):
+
+            if a["usuario_id"] == actual["usuario_id"]:
+
+                default = i
+
+                break
+
+    indice = st.selectbox(
+
+        "Aprendiz",
+
+        options=range(len(aprendices)),
+
+        index=default,
+
+        format_func=lambda x:
+            aprendices[x]["email"],
+
+    )
+
+    seleccionado = aprendices[indice]
+
+    set_aprendiz(seleccionado)
+
+    return seleccionado
+
+# ============================================================
+# Dashboard Aprendiz
+# ============================================================
+
+def render_aprendiz_dashboard():
+
+    aprendiz = get_aprendiz()
+
+    if aprendiz is None:
+
+        return
+
+    with st.spinner(
+        "Cargando aprendiz..."
+    ):
+
+        detalle = api.get_kpi_aprendiz(
+
+            aprendiz["usuario_id"]
+
+        )
+
+    if not detalle:
+
+        return
+
+    st.divider()
+
+    st.subheader(
+        f"🎓 {detalle['perfil']['email']}"
+    )
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.metric(
+        "Aplicaciones",
+        detalle["kpis"]["total_aplicaciones"]
+    )
+
+    c2.metric(
+        "Entrevistas",
+        detalle["kpis"]["total_entrevistas"]
+    )
+
+    c3.metric(
+        "Contratado",
+        "Sí" if detalle["kpis"]["contratado"] else "No"
+    )
+
+    c4.metric(
+        "Semáforo",
+        detalle["kpis"]["progreso"]
+    )
+
+    tab1, tab2, tab3, tab4 = st.tabs(
+
+        [
+
+            "📄 Aplicaciones",
+
+            "🎤 Entrevistas",
+
+            "🚨 Alertas",
+
+            "📈 Analítica",
+
+        ]
+
+    )
+
+    with tab1:
+
+        st.dataframe(
+
+            detalle["aplicaciones"],
+
+            use_container_width=True,
+
+            hide_index=True,
+
+        )
+
+    with tab2:
+
+        st.dataframe(
+
+            detalle["entrevistas"],
+
+            use_container_width=True,
+
+            hide_index=True,
+
+        )
+
+    with tab3:
+
+        if detalle["alertas"]:
+
+            panel_alertas(
+
+                detalle["alertas"]
+
+            )
+
+        else:
+
+            st.success(
+                "Sin alertas."
+            )
+
+    with tab4:
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+
+            st.metric(
+
+                "Tasa Conversión",
+
+                f"{detalle['kpis']['conversion']:.0%}"
+
+            )
+
+        with c2:
+
+            st.metric(
+
+                "Rechazos",
+
+                detalle["kpis"]["rechazos"]
+
+            )

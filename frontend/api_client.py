@@ -70,6 +70,7 @@ def get_me():
 
 # ── Cohortes ──────────────────────────────────────────────────────────────────
 
+@st.cache_data(ttl=300, show_spinner=False)
 def get_cohortes():
     r = requests.get(f"{API_BASE}/cohortes/", headers=_headers(), timeout=TIMEOUT)
     return _handle_response(r) or []
@@ -177,4 +178,71 @@ def get_alertas():
 def marcar_alerta_leida(alerta_id: str):
     r = requests.patch(f"{API_BASE}/kpis/alertas/{alerta_id}/leer",
                        headers=_headers(), timeout=TIMEOUT)
+    return _handle_response(r)
+
+
+# ---------------------refactorizacion 
+def get_kpis_cohortes():
+    r = requests.get(f"{API_BASE}/kpis/cohortes", headers=_headers(), timeout=TIMEOUT)
+    return _handle_response(r) or []
+
+
+def get_kpis_detalle_cohorte(cohorte_id: str):
+    r = requests.get(
+        f"{API_BASE}/kpis/cohorte/{cohorte_id}",
+        headers=_headers(),
+        timeout=TIMEOUT
+    )
+    return _handle_response(r)
+
+
+
+
+def get_kpis_tutores():
+    r = requests.get(f"{API_BASE}/kpis/tutores", headers=_headers(), timeout=TIMEOUT)
+    return _handle_response(r)
+
+
+def get_kpi_tutor(tutor_id: str):
+    r = requests.get(f"{API_BASE}/kpis/tutores/{tutor_id}",
+                     headers=_headers(), timeout=TIMEOUT)
+    return _handle_response(r)
+
+def get_kpis_tutores():
+    r = requests.get(f"{API_BASE}/kpis/tutores", headers=_headers(), timeout=TIMEOUT)
+    return _handle_response(r) or []
+
+def get_kpis_tutores_cohorte(
+    cohorte_id: str,
+):
+    r = requests.get(
+        f"{API_BASE}/kpis/cohorte/{cohorte_id}/tutores",
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r) or []
+
+def get_kpi_tutor_cohorte(
+    cohorte_id: str,
+    tutor_id: str,
+):
+    r = requests.get(
+        f"{API_BASE}/kpis/cohorte/{cohorte_id}/tutores/{tutor_id}",
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r)
+
+
+def get_kpi_aprendiz(
+    aprendiz_id: str,
+):
+    r = requests.get(
+        f"{API_BASE}/kpis/aprendiz/{aprendiz_id}",
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
     return _handle_response(r)

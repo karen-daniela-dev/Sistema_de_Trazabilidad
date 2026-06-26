@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database import Base
 from backend.models.enums import EstadoCohorte
-
+#models/cohorte.py
 
 class Cohorte(Base):
     __tablename__ = "cohortes"
