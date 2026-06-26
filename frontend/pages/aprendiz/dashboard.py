@@ -48,19 +48,29 @@ SEMAFORO_LABEL = {
 
 # ── Helpers de datos ──────────────────────────────────────────────────────────
 
-def _cargar_datos():
-    """Carga y estructura todos los datos del aprendiz en un solo bloque."""
-    kpis      = api.get_kpis_personal() or {}
-    
-    resultado = api.get_aplicaciones(size=100) or {}
-    apps      = resultado.get("items", [])
+PAGE_SIZE = 10
+
+
+def _cargar_datos(page: int = 1, size: int = PAGE_SIZE):
+    """Carga los datos del aprendiz por páginas para no sobrecargar la vista."""
+    kpis = api.get_kpis_personal() or {}
+
+    resultado = api.get_aplicaciones(page=page, size=size) or {}
+    apps = resultado.get("items", [])
+    total_pages = resultado.get("pages", 1)
+    total_items = resultado.get("total", len(apps))
 
     entrevistas_por_app = {}
-    for a in apps:
-        ents = api.get_entrevistas(a["id"]) or []
-        entrevistas_por_app[a["id"]] = ents
+    for app in apps:
+        ents = api.get_entrevistas(app["id"]) or []
+        entrevistas_por_app[app["id"]] = ents
 
-    return kpis, apps, entrevistas_por_app
+    return kpis, apps, entrevistas_por_app, {
+        "page": page,
+        "size": size,
+        "pages": total_pages,
+        "total": total_items,
+    }
 
 def _calcular_metricas(apps, entrevistas_por_app):
     """Calcula métricas derivadas para el dashboard."""
@@ -356,7 +366,31 @@ def _bloque_reflexiones(apps, entrevistas_por_app):
         st.info("Aún no tienes reflexiones registradas. Completa el campo al registrar entrevistas.")
         return
 
-    for f in sorted(filas, key=lambda x: x["fecha"], reverse=True):
+    filas = sorted(filas, key=lambda x: x["fecha"], reverse=True)
+    page_size = 10
+    total_pages = max(1, (len(filas) + page_size - 1) // page_size)
+
+    if "reflexiones_page" not in st.session_state:
+        st.session_state.reflexiones_page = 1
+
+    page = st.session_state.reflexiones_page
+    start = (page - 1) * page_size
+    end = start + page_size
+    pagina = filas[start:end]
+
+    col_prev, col_center, col_next = st.columns([1, 2, 1])
+    with col_prev:
+        if st.button("⬅️ Anterior", disabled=page <= 1, use_container_width=True):
+            st.session_state.reflexiones_page = max(1, page - 1)
+            st.rerun()
+    with col_center:
+        st.caption(f"Página {page} de {total_pages}")
+    with col_next:
+        if st.button("Siguiente ➡️", disabled=page >= total_pages, use_container_width=True):
+            st.session_state.reflexiones_page = min(total_pages, page + 1)
+            st.rerun()
+
+    for f in pagina:
         auto_val = f["auto"]
         auto_color = "#22c55e" if auto_val != "—" and int(auto_val) >= 4 else "#f59e0b" if auto_val != "—" and int(auto_val) >= 3 else "#ef4444"
         with st.container():
@@ -576,6 +610,9 @@ def _tab_perfil(perfil):
 def show():
     st.title("📊 Mi Panel de Empleabilidad")
 
+    if "aprendiz_dashboard_page" not in st.session_state:
+        st.session_state.aprendiz_dashboard_page = 1
+
     perfil = api.get_mi_perfil()
     if not perfil:
         _seccion_perfil()
@@ -594,9 +631,25 @@ def show():
         "👤 Mi perfil",
     ])
 
-    # Cargar datos una sola vez
+    # Cargar datos por páginas
     with st.spinner("Cargando datos..."):
-        kpis, apps, entrevistas_por_app = _cargar_datos()
+        page = st.session_state.aprendiz_dashboard_page
+        kpis, apps, entrevistas_por_app, pagination = _cargar_datos(page=page, size=PAGE_SIZE)
+
+    if pagination["pages"] > 1:
+        col_prev, col_center, col_next = st.columns([1, 2, 1])
+        with col_prev:
+            if st.button("⬅️ Anterior", disabled=page <= 1, use_container_width=True):
+                st.session_state.aprendiz_dashboard_page = max(1, page - 1)
+                st.rerun()
+        with col_center:
+            st.caption(f"Página {page} de {pagination['pages']} · {pagination['total']} aplicaciones")
+        with col_next:
+            if st.button("Siguiente ➡️", disabled=page >= pagination["pages"], use_container_width=True):
+                st.session_state.aprendiz_dashboard_page = min(pagination["pages"], page + 1)
+                st.rerun()
+
+    st.divider()
 
     with tab_dash:
         _bloque_semaforo(kpis, apps, entrevistas_por_app)

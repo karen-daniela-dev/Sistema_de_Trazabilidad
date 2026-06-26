@@ -99,8 +99,8 @@ def show(apps, entrevistas_por_app):
     with col_f:
         falla_sel = st.selectbox(
             "Selecciona la falla:",
-            fallas_con_datos,
-            format_func=lambda x: FALLAS_CONFIG[x]["label"],
+            [""] + fallas_con_datos,
+            format_func=lambda x: "— Elige una falla —" if not x else FALLAS_CONFIG[x]["label"],
             key="drill_falla",
         )
 
@@ -109,7 +109,8 @@ def show(apps, entrevistas_por_app):
     with col_s:
         subfalla_sel = st.selectbox(
             "Selecciona la subfalla:",
-            subfallas_disponibles,
+            [""] + subfallas_disponibles,
+            format_func=lambda x: "— Elige una subfalla —" if not x else x,
             key="drill_subfalla",
         ) if subfallas_disponibles else None
 
