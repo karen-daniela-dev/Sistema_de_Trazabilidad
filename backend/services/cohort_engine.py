@@ -3,6 +3,7 @@ Motor de ciclo de vida de cohortes.
 Transiciona estados ACTIVA → FINALIZADA → INACTIVA automáticamente.
 """
 from datetime import date, timedelta
+import calendar
 
 from sqlalchemy.orm import Session
 
@@ -45,4 +46,11 @@ def fecha_fin_desde_inicio(inicio: date) -> date:
     mes = inicio.month + 6
     anio = inicio.year + (mes - 1) // 12
     mes = (mes - 1) % 12 + 1
-    return inicio.replace(year=anio, month=mes)
+    # Obtiene el último día válido del mes/año calculado
+    ultimo_dia_valido = calendar.monthrange(anio, mes)[1]
+    # Usa el día original o el último día válido si es mayor
+    dia_final = min(inicio.day, ultimo_dia_valido)
+    return date(anio, mes, dia_final)
+    
+    
+    

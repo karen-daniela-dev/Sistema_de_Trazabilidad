@@ -6,7 +6,7 @@ Estructura:
   - 30 tutores (rotan por época, cada uno en UNA cohorte a la vez)
   - 20 cohortes escalonadas en el tiempo
        · 5  FINALIZADAS   (completaron 6 meses)
-       · 5  INACTIVA (completaron 6 meses + cierre administrativo)
+       · 5  DESHABILITADAS (completaron 6 meses + cierre administrativo)
        · 5  ACTIVAS consolidadas
        · 5  ACTIVAS recientes
   - 6 tutores asignados por cohorte (sin solapamiento temporal)
@@ -196,7 +196,7 @@ def seed_aplicaciones(db, ap_id, estado_cohorte, dias_inicio_cohorte):
     # Cohortes recientes (<45 días): poca actividad todavía
     if dias_inicio_cohorte < 45:
         n_apps = random.randint(0, 2)
-    # INACTIVA: completaron el ciclo pero con cierre; actividad variable
+    # Deshabilitadas: completaron el ciclo pero con cierre; actividad variable
     elif estado_cohorte == EstadoCohorte.INACTIVA:
         n_apps = random.randint(2, 7)
     else:
@@ -299,34 +299,34 @@ def seed_aplicaciones(db, ap_id, estado_cohorte, dias_inicio_cohorte):
 # disponibles (ya terminaron la época anterior) y se distribuyen 6 por cohorte.
 #
 COHORTES_DEF = [
-    # ── ÉPOCA A: hace ~24-30 meses ── (todas FINALIZADAS) ─────────────
-    # nombre                          inicio_dias  estado                  meta  ext
-    ("Full Stack Java 2022-I",         900, EstadoCohorte.FINALIZADA,     20, False),
-    ("Full Stack Java 2022-II",        870, EstadoCohorte.FINALIZADA,     18, True ),
-    ("Backend Cloud 2022",             840, EstadoCohorte.FINALIZADA,     15, True ),
-    ("Java Enterprise 2022-I",         810, EstadoCohorte.FINALIZADA,     20, False),
-    ("Full Stack Java 2022-III",       780, EstadoCohorte.FINALIZADA,     22, True ),
+    # ── INACTIVAS (3) — completaron ciclo, cierre administrativo ──────
+    # nombre                           inicio_dias  estado                meta  ext
+    ("Full Stack Java 2022-I",          900, EstadoCohorte.INACTIVA,      20, False),
+    ("Backend Cloud 2022",              840, EstadoCohorte.INACTIVA,      15, False),
+    ("Java Enterprise 2022-I",          780, EstadoCohorte.INACTIVA,      20, False),
 
-    # ── ÉPOCA B: hace ~18-24 meses ── (todas INACTIVA) ──────────
-    ("Full Stack Java 2023-I",         720, EstadoCohorte.INACTIVA,  20, False),
-    ("Backend Avanzado 2023-I",        690, EstadoCohorte.INACTIVA,  18, False),
-    ("Java Enterprise 2023-I",         660, EstadoCohorte.INACTIVA,  22, False),
-    ("Full Stack Java 2023-II",        630, EstadoCohorte.INACTIVA,  20, False),
-    ("Backend Cloud 2023",             600, EstadoCohorte.INACTIVA,  15, False),
+    # ── FINALIZADAS (5) — históricas con datos completos ──────────────
+    ("Full Stack Java 2022-II",         720, EstadoCohorte.FINALIZADA,    18, True ),
+    ("Full Stack Java 2023-I",          660, EstadoCohorte.FINALIZADA,    22, True ),
+    ("Backend Avanzado 2023-I",         600, EstadoCohorte.FINALIZADA,    18, False),
+    ("Full Stack Java 2023-II",         540, EstadoCohorte.FINALIZADA,    20, True ),
+    ("Java Enterprise 2023-I",          480, EstadoCohorte.FINALIZADA,    22, False),
 
-    # ── ÉPOCA C: hace ~12-18 meses ── (todas FINALIZADAS) ─────────────
-    ("Full Stack Java 2023-III",       540, EstadoCohorte.FINALIZADA,     25, True ),
-    ("Java Enterprise 2023-II",        510, EstadoCohorte.FINALIZADA,     20, False),
-    ("Backend Avanzado 2023-II",       480, EstadoCohorte.FINALIZADA,     18, True ),
-    ("Full Stack Java 2023-IV",        450, EstadoCohorte.FINALIZADA,     22, False),
-    ("Java + DevOps 2023",             420, EstadoCohorte.FINALIZADA,     20, True ),
+    # ── ACTIVAS consolidadas (8) — llevan varios meses en curso ───────
+    ("Full Stack Java 2023-III",        420, EstadoCohorte.ACTIVA,        25, False),
+    ("Backend Cloud 2023",              380, EstadoCohorte.ACTIVA,        20, False),
+    ("Java + DevOps 2023",              340, EstadoCohorte.ACTIVA,        22, False),
+    ("Full Stack Java 2024-I",          300, EstadoCohorte.ACTIVA,        25, False),
+    ("Backend Avanzado 2024-I",         260, EstadoCohorte.ACTIVA,        20, False),
+    ("Java Enterprise 2024-I",          220, EstadoCohorte.ACTIVA,        22, False),
+    ("Full Stack Java 2024-II",         180, EstadoCohorte.ACTIVA,        28, False),
+    ("Backend Cloud 2024",              140, EstadoCohorte.ACTIVA,        20, False),
 
-    # ── ÉPOCA D: hace 0-12 meses ── (todas ACTIVAS) ───────────────────
-    ("Full Stack Java 2024-I",         360, EstadoCohorte.ACTIVA,         25, False),
-    ("Backend Cloud 2024",             270, EstadoCohorte.ACTIVA,         22, False),
-    ("Java Enterprise 2024",           180, EstadoCohorte.ACTIVA,         20, False),
-    ("Full Stack Java 2024-II",         60, EstadoCohorte.ACTIVA,         28, False),
-    ("Full Stack Java 2024-III",        10, EstadoCohorte.ACTIVA,         30, False),
+    # ── ACTIVAS recientes (4) — recién iniciadas ───────────────────────
+    ("Java Enterprise 2024-II",          90, EstadoCohorte.ACTIVA,        22, False),
+    ("Full Stack Java 2024-III",         60, EstadoCohorte.ACTIVA,        30, False),
+    ("Backend Avanzado 2024-II",         30, EstadoCohorte.ACTIVA,        25, False),
+    ("Full Stack Java 2025-I",           10, EstadoCohorte.ACTIVA,        35, False),
 ]
 
 
@@ -430,7 +430,7 @@ def seed():
         print(f"{'─'*55}")
         print(f"  Cohortes totales   : {n_fin + n_dsh + n_act}")
         print(f"    · Finalizadas    : {n_fin}")
-        print(f"    · Deshabilitadas : {n_dsh}")
+        print(f"    · Inactivas      : {n_dsh}")
         print(f"    · Activas        : {n_act}")
         print(f"  Tutores            : 30  (6 por cohorte, sin solapamiento)")
         print(f"  Aprendices         : {total_ap}")
