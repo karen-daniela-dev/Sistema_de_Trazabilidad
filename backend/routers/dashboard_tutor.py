@@ -58,14 +58,19 @@ def get_apprentices(
 ):
 
     return TutorDashboardService.get_apprentices_page(
-
         db=db,
 
         tutor_id=current_user.id,
 
-        filters=filters,
-
         pagination=pagination,
+
+        search=filters.nombre,
+
+        actividad=filters.actividad,
+
+        progreso=filters.progreso,
+
+        contratado=filters.contratado,
     )
 @router.get(
     "/apprentices/{aprendiz_id}",

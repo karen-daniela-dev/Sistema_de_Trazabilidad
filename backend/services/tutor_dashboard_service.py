@@ -44,7 +44,7 @@ from backend.services.kpi_service import (
 )
 
 from backend.services.tutor_dashboard_queries import TutorDashboardQueries
-from datetime import datetime
+from datetime import datetime, UTC
 from backend.models.aplicacion import Aplicacion
 from backend.models.entrevista import Entrevista
 from backend.models.usuario import Usuario
@@ -245,6 +245,7 @@ class TutorDashboardService:
                     datetime.combine(
                         app.fecha_aplicacion,
                         datetime.min.time(),
+                        tzinfo=UTC,
                     )
                 )
 
