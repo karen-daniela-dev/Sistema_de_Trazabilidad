@@ -805,37 +805,136 @@ class TutorDashboardService:
             params=pagination,
         )
         
-@staticmethod
-def get_failure_summary(
-    db: Session,
-    tutor_id: UUID,
-    aprendiz_id: UUID,
-) -> TutorFailureSummaryResponse:
-    """
-    Construye las tortas de fallas de un aprendiz.
-    """
+    @staticmethod
+    def get_failure_summary(
+        db: Session,
+        tutor_id: UUID,
+        aprendiz_id: UUID,
+    ) -> TutorFailureSummaryResponse:
+        """
+        Construye las tortas de fallas de un aprendiz.
+        """
 
-    if not TutorDashboardQueries.aprendiz_belongs_to_tutor(
-        db,
-        tutor_id,
-        aprendiz_id,
-    ):
-        raise ValueError(
-            "El aprendiz no pertenece al tutor."
-        )
-
-    entrevistas = (
-        TutorDashboardQueries.get_apprentice_interviews(
+        if not TutorDashboardQueries.aprendiz_belongs_to_tutor(
             db,
+            tutor_id,
             aprendiz_id,
+        ):
+            raise ValueError(
+                "El aprendiz no pertenece al tutor."
+            )
+
+        entrevistas = (
+            TutorDashboardQueries.get_apprentice_interviews(
+                db,
+                aprendiz_id,
+            )
         )
-    )
 
-    if not entrevistas:
+        if not entrevistas:
 
-        pies = []
+            pies = []
+
+            for falla, titulo in FALLAS.items():
+
+                pies.append(
+
+                    FailurePieResponse(
+
+                        falla=falla,
+
+                        titulo=titulo,
+
+                        total=0,
+
+                        elementos=[],
+                    )
+                )
+
+            return TutorFailureSummaryResponse(
+
+                total_entrevistas=0,
+
+                pies=pies,
+            )
+
+        pies: list[FailurePieResponse] = []
+
+        total_entrevistas = len(
+            entrevistas,
+        )
 
         for falla, titulo in FALLAS.items():
+
+            contador: dict[str, int] = {}
+
+            for entrevista in entrevistas:
+
+                # Subfallas
+
+                for subfalla in entrevista.subfallas or []:
+
+                    categoria = get_falla_from_subfalla(
+                        subfalla,
+                    )
+                    if categoria is None:
+                        continue
+
+                    if categoria != falla:
+                        continue
+
+                    contador[subfalla] = (
+                        contador.get(
+                            subfalla,
+                            0,
+                        )
+                        + 1
+                    )
+
+                # Temas técnicos
+
+                if (
+                    falla == "TECNICA"
+                    and "TECNICA" in (entrevista.fallas or [])
+                ):
+                    
+
+                    for tema in entrevista.temas_tecnicos or []:
+
+                        contador[tema] = (
+                            contador.get(
+                                tema,
+                                0,
+                            )
+                            + 1
+                        )
+            total = sum(
+                contador.values(),
+            )
+
+            elementos: list[FailureSliceResponse] = []
+
+            if total > 0:
+
+                for nombre, cantidad in sorted(
+                    contador.items(),
+                    key=lambda item: (-item[1], item[0]),
+                ):
+
+                    elementos.append(
+
+                        FailureSliceResponse(
+
+                            nombre=nombre,
+
+                            cantidad=cantidad,
+
+                            porcentaje=round(
+                                (cantidad / total) * 100,
+                                2,
+                            ),
+                        )
+                    )
 
             pies.append(
 
@@ -845,114 +944,15 @@ def get_failure_summary(
 
                     titulo=titulo,
 
-                    total=0,
+                    total=total,
 
-                    elementos=[],
+                    elementos=elementos,
                 )
             )
 
         return TutorFailureSummaryResponse(
 
-            total_entrevistas=0,
+            total_entrevistas=total_entrevistas,
 
             pies=pies,
         )
-
-    pies: list[FailurePieResponse] = []
-
-    total_entrevistas = len(
-        entrevistas,
-    )
-
-    for falla, titulo in FALLAS.items():
-
-        contador: dict[str, int] = {}
-
-        for entrevista in entrevistas:
-
-            # Subfallas
-
-            for subfalla in entrevista.subfallas or []:
-
-                categoria = get_falla_from_subfalla(
-                    subfalla,
-                )
-                if categoria is None:
-                    continue
-
-                if categoria != falla:
-                    continue
-
-                contador[subfalla] = (
-                    contador.get(
-                        subfalla,
-                        0,
-                    )
-                    + 1
-                )
-
-            # Temas técnicos
-
-            if (
-                falla == "TECNICA"
-                and "TECNICA" in (entrevista.fallas or [])
-            ):
-                
-
-                for tema in entrevista.temas_tecnicos or []:
-
-                    contador[tema] = (
-                        contador.get(
-                            tema,
-                            0,
-                        )
-                        + 1
-                    )
-        total = sum(
-            contador.values(),
-        )
-
-        elementos: list[FailureSliceResponse] = []
-
-        if total > 0:
-
-            for nombre, cantidad in sorted(
-                contador.items(),
-                key=lambda item: (-item[1], item[0]),
-            ):
-
-                elementos.append(
-
-                    FailureSliceResponse(
-
-                        nombre=nombre,
-
-                        cantidad=cantidad,
-
-                        porcentaje=round(
-                            (cantidad / total) * 100,
-                            2,
-                        ),
-                    )
-                )
-
-        pies.append(
-
-            FailurePieResponse(
-
-                falla=falla,
-
-                titulo=titulo,
-
-                total=total,
-
-                elementos=elementos,
-            )
-        )
-
-    return TutorFailureSummaryResponse(
-
-        total_entrevistas=total_entrevistas,
-
-        pies=pies,
-    )

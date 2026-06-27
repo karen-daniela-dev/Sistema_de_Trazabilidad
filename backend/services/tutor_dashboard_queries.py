@@ -515,35 +515,35 @@ class TutorDashboardQueries:
             .count()
         )
         
-# ---------------------------------------------------------------------
-# Fallas del aprendiz
-# ---------------------------------------------------------------------
+    # ---------------------------------------------------------------------
+    # Fallas del aprendiz
+    # ---------------------------------------------------------------------
 
-@staticmethod
-def get_apprentice_interviews(
-    db: Session,
-    aprendiz_id: UUID,
-) -> list[Entrevista]:
-    """
-    Recupera todas las entrevistas de un aprendiz.
+    @staticmethod
+    def get_apprentice_interviews(
+        db: Session,
+        aprendiz_id: UUID,
+    ) -> list[Entrevista]:
+        """
+        Recupera todas las entrevistas de un aprendiz.
 
-    Se utiliza para construir el Dashboard
-    de Fallas.
-    """
+        Se utiliza para construir el Dashboard
+        de Fallas.
+        """
 
-    return (
-        db.query(Entrevista)
-        .options(
-            selectinload(
-                Entrevista.aplicacion,
-            ),
+        return (
+            db.query(Entrevista)
+            .options(
+                selectinload(
+                    Entrevista.aplicacion,
+                ),
+            )
+            .join(Aplicacion)
+            .filter(
+                Aplicacion.usuario_id == aprendiz_id,
+            )
+            .order_by(
+                Entrevista.fecha.desc(),
+            )
+            .all()
         )
-        .join(Aplicacion)
-        .filter(
-            Aplicacion.usuario_id == aprendiz_id,
-        )
-        .order_by(
-            Entrevista.fecha.desc(),
-        )
-        .all()
-    )
