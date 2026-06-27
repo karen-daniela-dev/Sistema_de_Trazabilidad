@@ -76,6 +76,7 @@ def get_apprentices(
     "/apprentices/{aprendiz_id}",
     response_model=TutorApprenticeDetailResponse,
 )
+
 def get_apprentice_detail(
 
     aprendiz_id: UUID,

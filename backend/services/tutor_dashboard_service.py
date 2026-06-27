@@ -17,6 +17,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from backend.constants.interview_catalog import FALLAS, get_falla_from_subfalla
+from backend.services.kpi_helpers import collect_user_entrevistas
 from sqlalchemy.orm import Session
 
 from backend.schemas.tutor_dashboard import (
@@ -26,6 +27,7 @@ from backend.schemas.tutor_dashboard import (
     SummaryCardsResponse,
     TutorApplicationPage,
     TutorApplicationResponse,
+    TutorApprenticeDetailResponse,
     TutorFailureSummaryResponse,
     TutorReflectionPage,
     TutorReflectionResponse,
@@ -562,6 +564,98 @@ class TutorDashboardService:
             pagination,
         )
         
+    @staticmethod
+    def get_apprentice_detail(
+        db: Session,
+        tutor_id: UUID,
+        aprendiz_id: UUID,
+    ) -> TutorApprenticeDetailResponse:
+        """
+        Obtiene la información general de un aprendiz.
+        """
+
+        perfil = TutorDashboardQueries.get_aprendiz(
+            db,
+            aprendiz_id,
+            tutor_id,
+        )
+
+        if perfil is None:
+            raise ValueError(
+                "El aprendiz no pertenece al tutor."
+            )
+
+        apps_by_user, entrevistas_by_app = (
+            load_apps_and_entrevistas_for_users(
+                db,
+                [aprendiz_id],
+            )
+        )
+
+        aplicaciones = apps_by_user.get(
+            aprendiz_id,
+            [],
+        )
+
+        entrevistas = collect_user_entrevistas(
+            aplicaciones,
+            entrevistas_by_app,
+        )
+
+        kpi = build_user_kpi(
+            aplicaciones,
+            entrevistas,
+        )
+
+        ultima_aplicacion = (
+            max(
+                (a.fecha_aplicacion for a in aplicaciones),
+                default=None,
+            )
+        )
+
+        ultima_entrevista = (
+            max(
+                (e.fecha for e in entrevistas),
+                default=None,
+            )
+        )
+
+        return TutorApprenticeDetailResponse(
+
+            id=perfil.usuario.id,
+
+            nombre=TutorDashboardService._display_name(
+                perfil.usuario,
+            ),
+
+            email=perfil.usuario.email,
+
+            telefono=perfil.telefono,
+
+            telefono_emergencia=perfil.telefono_emergencia,
+
+            ciudad=perfil.ciudad,
+
+            actividad=SemaforoEstado(
+                kpi["semaforo_actividad"],
+            ),
+
+            progreso=SemaforoEstado(
+                kpi["semaforo_progreso"],
+            ),
+
+            contratado=kpi["contratado"],
+
+            total_aplicaciones=kpi["total_aplicaciones"],
+
+            total_entrevistas=kpi["total_entrevistas"],
+
+            ultima_aplicacion=ultima_aplicacion,
+
+            ultima_entrevista=ultima_entrevista,
+        )
+            
         
         
 
