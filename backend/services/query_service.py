@@ -11,7 +11,7 @@ from backend.models.aplicacion import Aplicacion
 from backend.models.usuario import Usuario
 from backend.models.enums import RolEnum
 from backend.utils.pagination import PaginationParams, Page
-
+#query_service.py
 T = TypeVar("T")
 
 

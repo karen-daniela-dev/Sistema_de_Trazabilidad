@@ -10,7 +10,7 @@ from backend.models.aplicacion import Aplicacion
 from backend.models.entrevista import Entrevista
 from backend.models.enums import EstadoApp
 from backend.services.alert_engine import semaforo_actividad, semaforo_progreso
-
+#bakend/services/kpi_helpers.y
 
 def load_apps_and_entrevistas_for_users(
     db: Session,

@@ -18,7 +18,7 @@ from backend.config import settings
 from backend.database import create_all_tables, engine
 from backend.services.cohort_engine import sincronizar_estados_cohortes
 
-from backend.routers import auth, usuarios, cohortes, aplicaciones, entrevistas, kpis
+from backend.routers import( auth, usuarios, cohortes, aplicaciones, entrevistas, kpis, dashboard_tutor)
 
 logging.basicConfig(
     level=logging.DEBUG if settings.DEBUG else logging.INFO,
@@ -107,6 +107,7 @@ app.include_router(cohortes.router)
 app.include_router(aplicaciones.router)
 app.include_router(entrevistas.router)
 app.include_router(kpis.router)
+app.include_router(dashboard_tutor)
 
 
 
