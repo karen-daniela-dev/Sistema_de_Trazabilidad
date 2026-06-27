@@ -107,7 +107,7 @@ app.include_router(cohortes.router)
 app.include_router(aplicaciones.router)
 app.include_router(entrevistas.router)
 app.include_router(kpis.router)
-app.include_router(dashboard_tutor)
+app.include_router(dashboard_tutor.router)
 
 
 
