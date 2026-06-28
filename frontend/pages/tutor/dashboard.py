@@ -1,93 +1,169 @@
 """
-Panel del Tutor — Vista de grupo, alertas y análisis de aprendices.
+pages/tutor/dashboard.py
+
+Dashboard principal del Tutor.
 """
+
+from __future__ import annotations
+
 import streamlit as st
-import pandas as pd
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
 from frontend import api_client as api
-from frontend.components.ui import (
-    kpi_card, mostrar_semaforo, chart_semaforos_grupo,
-    chart_fallas_bar, panel_alertas
+
+from . import dashboard_summary
+from . import dashboard_table
+from . import dashboard_detail
+from . import dashboard_failures
+from . import dashboard_applications
+from . import dashboard_reflections
+
+
+PAGE_SIZE = 20
+
+
+def _init_state() -> None:
+    """Inicializa el estado de la página."""
+
+    st.session_state.setdefault(
+        "tutor_page",
+        1,
+    )
+
+    st.session_state.setdefault(
+        "selected_apprentice",
+        None,
+    )
+
+
+# def _load_dashboard() -> tuple[dict, dict]:
+#     """
+#     Carga la información principal
+#     del Dashboard.
+#     """
+
+#     summary = api.get_tutor_summary()
+
+#     page = api.get_tutor_apprentices(
+#         page=st.session_state["tutor_page"],
+#         size=PAGE_SIZE,
+#     )
+
+#     return summary, page
+@st.cache_data(
+    ttl=60,
+    show_spinner=False,
 )
+def _load_dashboard(
+    page: int,
+    size: int,
+) -> tuple[dict, dict]:
+    """
+    Carga la información principal
+    del Dashboard.
+    """
 
-SEMAFORO_EMOJI = {"GREEN": "🟢", "YELLOW": "🟡", "RED": "🔴"}
+    summary = api.get_tutor_summary()
+
+    apprentices = api.get_tutor_apprentices(
+        page=page,
+        size=size,
+    )
+
+    return (
+        summary,
+        apprentices,
+    )
 
 
-def show():
-    st.title("👨‍🏫 Panel del Tutor")
+def _load_selected_apprentice() -> dict | None:
+    """
+    Carga el detalle del aprendiz
+    actualmente seleccionado.
+    """
 
-    tab_grupo, tab_alertas = st.tabs(["Mi grupo", "🔔 Alertas"])
+    aprendiz_id = st.session_state.get(
+        "selected_apprentice",
+    )
 
-    with tab_grupo:
-        with st.spinner("Cargando datos del grupo..."):
-            kpis = api.get_kpis_grupo()
+    if not aprendiz_id:
+        return None
 
-        if not kpis:
-            st.info("No tienes aprendices asignados aún.")
-            return
+    detail = api.get_tutor_apprentice(
+        aprendiz_id,
+    )
 
-        resumen = kpis.get("resumen", {})
-        total = kpis.get("total_aprendices", 0)
+    if detail is None:
+        return None
 
-        # KPIs del grupo
-        c1, c2, c3, c4 = st.columns(4)
-        kpi_card(c1, "Aprendices", total)
-        kpi_card(c2, "Contratados", resumen.get("contratados", 0), color="#16a34a")
-        kpi_card(c3, "En riesgo 🟡", resumen.get("YELLOW", 0), color="#ca8a04")
-        kpi_card(c4, "Críticos 🔴", resumen.get("RED", 0), color="#dc2626")
+    failures = api.get_tutor_failures(
+        aprendiz_id,
+    )
 
-        st.divider()
-        chart_semaforos_grupo(resumen)
-        st.divider()
+    return {
+        "detail": detail,
+        "failures": failures,
+    }
 
-        # Tabla detallada por aprendiz
-        st.subheader("Detalle por aprendiz")
-        aprendices = kpis.get("aprendices", [])
 
-        if aprendices:
-            filas = []
-            for a in aprendices:
-                sem = a.get("semaforo", "GREEN")
-                filas.append({
-                    "Estado": f"{SEMAFORO_EMOJI.get(sem, '⚪')} {sem}",
-                    "Email": a.get("email", ""),
-                    "Aplicaciones": a.get("total_aplicaciones", 0),
-                    "Entrevistas": a.get("total_entrevistas", 0),
-                    "Conversión": f"{a.get('tasa_conversion', 0):.0%}",
-                    "Contratado": "🎉 Sí" if a.get("contratado") else "No",
-                })
-            df = pd.DataFrame(filas)
-            st.dataframe(df, use_container_width=True, hide_index=True)
+def show() -> None:
 
-            # Drill-down por aprendiz
-            st.divider()
-            emails = [a["email"] for a in aprendices]
-            email_sel = st.selectbox("Ver detalle de:", emails)
-            aprendiz_data = next((a for a in aprendices if a["email"] == email_sel), None)
+    _init_state()
 
-            if aprendiz_data:
-                col1, col2 = st.columns(2)
-                with col1:
-                    mostrar_semaforo(aprendiz_data.get("semaforo", "GREEN"), "Semáforo")
-                    st.metric("Aplicaciones", aprendiz_data.get("total_aplicaciones", 0))
-                    st.metric("Entrevistas", aprendiz_data.get("total_entrevistas", 0))
-                with col2:
-                    chart_fallas_bar(aprendiz_data.get("fallas_frecuentes", []))
+    st.title(
+        "👨‍🏫 Dashboard del Tutor"
+    )
 
-                por_estado = aprendiz_data.get("por_estado", {})
-                if any(por_estado.values()):
-                    st.subheader("Estados de sus aplicaciones")
-                    for estado, n in por_estado.items():
-                        if n > 0:
-                            st.write(f"• **{estado}**: {n}")
+    with st.spinner(
+        "Cargando dashboard..."
+    ):
 
-    with tab_alertas:
-        alertas = api.get_alertas()
-        panel_alertas(alertas)
-        if alertas:
-            if st.button("Marcar todas como leídas"):
-                for a in alertas:
-                    api.marcar_alerta_leida(a["id"])
-                st.rerun()
+        summary, page = _load_dashboard(
+            page=st.session_state["tutor_page"],
+            size=PAGE_SIZE,
+        )
+
+    if summary is None or page is None:
+        return
+
+    dashboard_summary.show(
+        summary,
+    )
+
+    dashboard_table.show(
+        page,
+    )
+
+    apprentice = _load_selected_apprentice()
+
+    if apprentice is None:
+        return
+
+    dashboard_detail.show(
+        apprentice["detail"],
+    )
+
+    dashboard_failures.show(
+        apprentice["failures"],
+    )
+    tab_apps, tab_reflections = st.tabs(
+        [
+            "📂 Vacantes",
+            "💭 Reflexiones",
+        ]
+    )
+
+    with tab_apps:
+
+        dashboard_applications.show(
+            apprentice["detail"]["id"],
+        )
+
+    with tab_reflections:
+
+        dashboard_reflections.show(
+            apprentice["detail"]["id"],
+        )
+
+    dashboard_applications.show()
+
+    dashboard_reflections.show()

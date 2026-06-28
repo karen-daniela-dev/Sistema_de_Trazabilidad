@@ -246,3 +246,113 @@ def get_kpi_aprendiz(
     )
 
     return _handle_response(r)
+
+
+# ── Dashboard Tutor ───────────────────────────────────────────────────────────
+
+def get_tutor_summary():
+    r = requests.get(
+        f"{API_BASE}/dashboard/tutor/summary",
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+    return _handle_response(r)
+
+
+def get_tutor_apprentices(
+    page: int = 1,
+    size: int = 20,
+    nombre: str | None = None,
+    actividad: str | None = None,
+    progreso: str | None = None,
+    contratado: bool | None = None,
+    ciudad: str | None = None,
+):
+    params = {
+        "page": page,
+        "size": size,
+    }
+
+    if nombre:
+        params["nombre"] = nombre
+
+    if actividad:
+        params["actividad"] = actividad
+
+    if progreso:
+        params["progreso"] = progreso
+
+    if contratado is not None:
+        params["contratado"] = contratado
+
+    if ciudad:
+        params["ciudad"] = ciudad
+
+    r = requests.get(
+        f"{API_BASE}/dashboard/tutor/apprentices",
+        params=params,
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r)
+
+
+def get_tutor_apprentice(
+    aprendiz_id: str,
+):
+    r = requests.get(
+        f"{API_BASE}/dashboard/tutor/apprentices/{aprendiz_id}",
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r)
+
+
+def get_tutor_applications(
+    aprendiz_id: str,
+    page: int = 1,
+    size: int = 20,
+):
+    r = requests.get(
+        f"{API_BASE}/dashboard/tutor/apprentices/{aprendiz_id}/applications",
+        params={
+            "page": page,
+            "size": size,
+        },
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r)
+
+
+def get_tutor_reflections(
+    aprendiz_id: str,
+    page: int = 1,
+    size: int = 20,
+):
+    r = requests.get(
+        f"{API_BASE}/dashboard/tutor/apprentices/{aprendiz_id}/reflections",
+        params={
+            "page": page,
+            "size": size,
+        },
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r)
+
+
+def get_tutor_failures(
+    aprendiz_id: str,
+):
+    r = requests.get(
+        f"{API_BASE}/dashboard/tutor/apprentices/{aprendiz_id}/failures",
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r)
