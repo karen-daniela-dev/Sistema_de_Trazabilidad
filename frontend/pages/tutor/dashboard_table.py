@@ -300,6 +300,7 @@ def _render_pagination(
             st.session_state[
                 "tutor_page"
             ] = current_page - 1
+            st.rerun()
 
     with cols[1]:
 
@@ -325,3 +326,4 @@ def _render_pagination(
             st.session_state[
                 "tutor_page"
             ] = current_page + 1
+            st.rerun()

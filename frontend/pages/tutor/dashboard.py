@@ -39,43 +39,30 @@ def _init_state() -> None:
 )
 
 
-# def _load_dashboard() -> tuple[dict, dict]:
-#     """
-#     Carga la información principal
-#     del Dashboard.
-#     """
 
-#     summary = api.get_tutor_summary()
 
-#     page = api.get_tutor_apprentices(
-#         page=st.session_state["tutor_page"],
-#         size=PAGE_SIZE,
-#     )
-
-#     return summary, page
 @st.cache_data(
-    ttl=60,
+    ttl=300,
     show_spinner=False,
 )
-def _load_dashboard(
+def _load_summary() -> dict:
+    """
+    Carga los KPI del Dashboard.
+    """
+
+    return api.get_tutor_summary()
+
+def _load_apprentices(
     page: int,
     size: int,
-) -> tuple[dict, dict]:
+) -> dict:
     """
-    Carga la información principal
-    del Dashboard.
+    Carga la tabla de aprendices.
     """
 
-    summary = api.get_tutor_summary()
-
-    apprentices = api.get_tutor_apprentices(
+    return api.get_tutor_apprentices(
         page=page,
         size=size,
-    )
-
-    return (
-        summary,
-        apprentices,
     )
 
 
@@ -116,15 +103,18 @@ def show() -> None:
     st.title(
         "👨‍🏫 Dashboard del Tutor"
     )
-
     with st.spinner(
-        "Cargando dashboard..."
-    ):
+    "Cargando dashboard..."
+):
 
-        summary, page = _load_dashboard(
+        summary = _load_summary()
+
+        page = _load_apprentices(
             page=st.session_state["tutor_page"],
             size=PAGE_SIZE,
         )
+
+    
 
     if summary is None or page is None:
         return
