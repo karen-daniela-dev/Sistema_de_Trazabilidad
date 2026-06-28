@@ -2,196 +2,23 @@
 pages/tutor/dashboard_table.py
 
 Tabla principal del Dashboard del Tutor.
+version = streamlit-aggrid 1.2.1.post2.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
 
+import pandas as pd
 import streamlit as st
 
+from st_aggrid import (
+    AgGrid,
+    DataReturnMode,
+    GridOptionsBuilder,
+)
 
- 
-COLUMN_WIDTHS = [
-    2.3,  # Aprendiz
-    1.2,  # Teléfono
-    1.2,  # Emergencia
-    0.9,  # Apps
-    1.0,  # Actividad
-    1.0,  # Progreso
-    0.8,  # Contratado
-    1.4,  # Última actividad
-    0.5,  # Acción
-]
-
-
-# -----------------------------------------------------------------------------
-# Tabla principal
-# -----------------------------------------------------------------------------
-
-def show(
-    page: dict,
-) -> None:
-    """
-    Renderiza la tabla principal de aprendices.
-    """
-
-    rows = page.get(
-        "items",
-        [],
-    )
-
-    if not rows:
-
-        st.info(
-            "No existen aprendices asignados."
-        )
-
-        return
-    
-    
-    # Filtro de búsqueda
-    search_query = st.text_input("🔍 Buscar por nombre o cédula")
-
-    if search_query:
-        rows = [
-            r for r in rows 
-            if search_query.lower() in r["nombre"].lower() 
-            or search_query.lower() in str(r.get("cedula", "")).lower()
-        ]
-
- 
-
-    _render_header()
-
-    for row in rows:
-
-        _render_row(
-            row,
-        )
-
-    _render_pagination(
-        page,
-    )
-
-
-# -----------------------------------------------------------------------------
-# Encabezado
-# -----------------------------------------------------------------------------
-
-def _render_header() -> None:
-    """
-    Renderiza el encabezado de la tabla.
-    """
-    cols = st.columns(
-        COLUMN_WIDTHS,
-    )
- 
-    cols[0].markdown("**Aprendiz**")
-    cols[1].markdown("**Teléfono**")
-    cols[2].markdown("**Emergencia**")
-    cols[3].markdown("**Apps**")
-    cols[4].markdown("**Actividad**")
-    cols[5].markdown("**Progreso**")
-    cols[6].markdown("**✔**")
-    cols[7].markdown("**Última actividad**")
-    cols[8].markdown("**Acción**")
- 
-    st.divider()
-    
-    
-   
-# -----------------------------------------------------------------------------
-# Filas
-# -----------------------------------------------------------------------------
-
-def _render_row(
-    row: dict,
-) -> None:
-    """
-    Renderiza una fila de la tabla.
-    """
- 
-    cols = st.columns(
-        COLUMN_WIDTHS,
-    )
- 
-    # Aprendiz
- 
-    cols[0].markdown(
-        f"**{row['nombre']}**"
-    )
- 
-    # Teléfono
- 
-    cols[1].markdown(
-        row.get("telefono") or "-"
-    )
- 
-    # Emergencia
- 
-    cols[2].markdown(
-        row.get("telefono_emergencia") or "-"
-    )
- 
-    # Aplicaciones
- 
-    cols[3].markdown(
-        str(
-            row["total_aplicaciones"],
-        )
-    )
- 
-    # Actividad
- 
-    cols[4].markdown(
-        _semaphore_icon(
-            row["actividad"],
-        )
-    )
- 
-    # Progreso
- 
-    cols[5].markdown(
-        _semaphore_icon(
-            row["progreso"],
-        )
-    )
- 
-    # Contratado
- 
-    cols[6].markdown(
-        "✅"
-        if row["contratado"]
-        else "—"
-    )
- 
-    # Última actividad
- 
-    cols[7].markdown(
-        _format_date(
-            row.get(
-                "ultima_actividad",
-            )
-        )
-    )
- 
-    # Acción
- 
-    if cols[8].button(
-        "🔍",
-        key=f"detail_{row['id']}",
-        help="Ver detalle del aprendiz",
-    ):
- 
-        st.session_state[
-            "selected_apprentice"
-        ] = row["id"]
-        st.session_state[
-            "selected_panel"
-        ] = None
- 
-    st.divider()
+GRID_HEIGHT = 500
 
 
 # -----------------------------------------------------------------------------
@@ -202,7 +29,7 @@ def _semaphore_icon(
     estado: str,
 ) -> str:
     """
-    Convierte el estado del semáforo
+    Convierte el estado
     en un indicador visual.
     """
 
@@ -223,7 +50,7 @@ def _format_date(
     value: datetime | str | None,
 ) -> str:
     """
-    Formatea fechas para la tabla.
+    Formatea una fecha.
     """
 
     if value is None:
@@ -253,81 +80,246 @@ def _format_date(
     except Exception:
 
         return "-"
-    
+
+
 # -----------------------------------------------------------------------------
-# Paginación
+# DataFrame
 # -----------------------------------------------------------------------------
 
-def _render_pagination(
+def _prepare_dataframe(
+    rows: list[dict],
+) -> pd.DataFrame:
+    """
+    Construye el DataFrame
+    para AgGrid.
+    """
+
+    dataframe = pd.DataFrame(
+        rows,
+    )
+
+    dataframe["actividad"] = dataframe[
+        "actividad"
+    ].map(
+        _semaphore_icon,
+    )
+
+    dataframe["progreso"] = dataframe[
+        "progreso"
+    ].map(
+        _semaphore_icon,
+    )
+
+    dataframe["contratado"] = dataframe[
+        "contratado"
+    ].map(
+        lambda x: "✅" if x else "—",
+    )
+
+    dataframe["ultima_actividad"] = dataframe[
+        "ultima_actividad"
+    ].map(
+        _format_date,
+    )
+
+    dataframe = dataframe[
+        [
+            "id",
+            "nombre",
+            "telefono",
+            "telefono_emergencia",
+            "total_aplicaciones",
+            "actividad",
+            "progreso",
+            "contratado",
+            "ultima_actividad",
+        ]
+    ]
+
+    dataframe.rename(
+
+        columns={
+
+            "nombre": "Aprendiz",
+
+            "telefono": "Teléfono",
+
+            "telefono_emergencia": "Emergencia",
+
+            "total_aplicaciones": "Apps",
+
+            "actividad": "Actividad",
+
+            "progreso": "Progreso",
+
+            "contratado": "✔",
+
+            "ultima_actividad": "Última actividad",
+
+        },
+
+        inplace=True,
+
+    )
+
+    return dataframe
+
+
+# -----------------------------------------------------------------------------
+# Tabla principal
+# -----------------------------------------------------------------------------
+
+def show(
     page: dict,
 ) -> None:
     """
-    Renderiza los controles
-    de paginación.
+    Renderiza la tabla principal
+    de aprendices.
     """
 
-    st.divider()
-
-    cols = st.columns(
-        [
-            1,
-            2,
-            2,
-            1,
-        ]
+    rows = page.get(
+        "items",
+        [],
     )
 
-    current_page = page.get(
-        "page",
-        1,
-    )
+    if not rows:
 
-    total_pages = page.get(
-        "pages",
-        1,
-    )
-
-    total_rows = page.get(
-        "total",
-        0,
-    )
-
-    with cols[0]:
-
-        if st.button(
-            "◀",
-            disabled=current_page <= 1,
-            use_container_width=True,
-            key="tutor_prev_page",
-        ):
-
-            st.session_state[
-                "tutor_page"
-            ] = current_page - 1
-            st.rerun()
-
-    with cols[1]:
-
-        st.caption(
-            f"Página {current_page} de {total_pages}"
+        st.info(
+            "No existen aprendices asignados."
         )
 
-    with cols[2]:
+        return
 
-        st.caption(
-            f"{total_rows} aprendices"
-        )
+    dataframe = _prepare_dataframe(
+        rows,
+    )
 
-    with cols[3]:
+    gb = GridOptionsBuilder.from_dataframe(
+        dataframe,
+    )
 
-        if st.button(
-            "▶",
-            disabled=current_page >= total_pages,
-            use_container_width=True,
-            key="tutor_next_page",
-        ):
+    gb.configure_default_column(
+        sortable=True,
+        filter=True,
+        resizable=True,
+    )
 
-            st.session_state[
-                "tutor_page"
-            ] = current_page + 1
-            st.rerun()
+    gb.configure_column(
+        "id",
+        hide=True,
+    )
+
+    gb.configure_column(
+        "Aprendiz",
+        pinned="left",
+        minWidth=220,
+    )
+
+    gb.configure_column(
+        "Teléfono",
+        minWidth=120,
+    )
+
+    gb.configure_column(
+        "Emergencia",
+        minWidth=120,
+    )
+
+    gb.configure_column(
+        "Apps",
+        maxWidth=80,
+        type=["numericColumn"],
+    )
+
+    gb.configure_column(
+        "Actividad",
+        maxWidth=90,
+    )
+
+    gb.configure_column(
+        "Progreso",
+        maxWidth=90,
+    )
+
+    gb.configure_column(
+        "✔",
+        maxWidth=70,
+    )
+
+    gb.configure_column(
+        "Última actividad",
+        minWidth=130,
+    )
+
+    gb.configure_selection(
+        selection_mode="single",
+        use_checkbox=False,
+    )
+
+    gb.configure_grid_options(
+
+        rowHeight=36,
+
+        headerHeight=38,
+
+        rowSelection="single",
+
+        suppressRowDeselection=False,
+
+        animateRows=True,
+
+        pagination=False,
+    )
+
+    response = AgGrid(
+
+        dataframe,
+
+        gridOptions=gb.build(),
+
+        height=GRID_HEIGHT,
+
+        width="100%",
+
+        data_return_mode=DataReturnMode.AS_INPUT,
+
+        update_on=["selectionChanged"],
+
+        allow_unsafe_jscode=False,
+
+        theme="streamlit",
+        
+        key="tutor_apprentices_grid",
+    )
+    
+   
+
+    selected_rows = response.selected_rows
+
+    if (
+        selected_rows is None
+        or selected_rows.empty
+    ):
+
+        return
+
+    apprentice_id = selected_rows.iloc[0]["id"]
+
+    current_apprentice = st.session_state.get(
+        "selected_apprentice",
+    )
+
+    if apprentice_id == current_apprentice:
+
+        return
+
+    st.session_state[
+        "selected_apprentice"
+    ] = apprentice_id
+
+    st.session_state[
+        "selected_panel"
+    ] = None
+
+    st.rerun()
+    
