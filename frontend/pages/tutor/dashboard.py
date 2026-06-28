@@ -33,6 +33,10 @@ def _init_state() -> None:
         "selected_apprentice",
         None,
     )
+    st.session_state.setdefault(
+    "selected_panel",
+    None,
+)
 
 
 # def _load_dashboard() -> tuple[dict, dict]:
@@ -145,25 +149,39 @@ def show() -> None:
     dashboard_failures.show(
         apprentice["failures"],
     )
-    tab_apps, tab_reflections = st.tabs(
-        [
-            "📂 Vacantes",
-            "💭 Reflexiones",
-        ]
-    )
+    st.divider()
 
-    with tab_apps:
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        if st.button(
+            "📂 Ver vacantes",
+            use_container_width=True,
+        ):
+
+            st.session_state["selected_panel"] = "applications"
+
+    with col2:
+
+        if st.button(
+            "💭 Ver reflexiones",
+            use_container_width=True,
+        ):
+
+            st.session_state["selected_panel"] = "reflections"
+            
+    if st.session_state["selected_panel"] == "applications":
 
         dashboard_applications.show(
             apprentice["detail"]["id"],
         )
 
-    with tab_reflections:
+    elif st.session_state["selected_panel"] == "reflections":
 
         dashboard_reflections.show(
             apprentice["detail"]["id"],
         )
 
-    dashboard_applications.show()
 
-    dashboard_reflections.show()
+  

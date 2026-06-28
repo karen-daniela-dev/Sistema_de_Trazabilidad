@@ -183,6 +183,9 @@ def _render_row(
         st.session_state[
             "selected_apprentice"
         ] = row["id"]
+        st.session_state[
+            "selected_panel"
+        ] = None
 
     st.divider()
 
