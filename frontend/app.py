@@ -13,12 +13,14 @@ from frontend.pages.aprendiz import dashboard as aprendiz_dashboard
 from frontend.pages.tutor import dashboard as tutor_dashboard
 from frontend.pages.coordinador import dashboard as coordinador_dashboard
 
-st.set_page_config(
-    page_title="Sistema de Empleabilidad",
-    page_icon="🎓",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+if "page_config_initialized" not in st.session_state:
+    st.set_page_config(
+        page_title="Sistema de Empleabilidad",
+        page_icon="🎓",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+    st.session_state.page_config_initialized = True
 
 # ── CSS Global ────────────────────────────────────────────────────────────────
 st.markdown("""
