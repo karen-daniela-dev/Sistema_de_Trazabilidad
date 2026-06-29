@@ -49,6 +49,16 @@ def main():
     with st.sidebar:
         st.markdown("### 🎓 Empleabilidad")
         st.markdown(f"**Rol:** {rol}")
+        cohorte = st.session_state.get(
+            "cohorte_nombre",
+        )
+
+        if cohorte:
+
+            st.markdown(
+                f"**Cohorte:** {cohorte}"
+            )
+        
         st.markdown(f"**ID:** `{str(st.session_state.get('user_id', ''))[:8]}...`")
         st.divider()
         if st.button("🚪 Cerrar sesión", use_container_width=True):

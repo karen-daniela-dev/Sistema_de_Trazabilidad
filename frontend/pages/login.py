@@ -28,10 +28,20 @@ def show():
             else:
                 with st.spinner("Verificando..."):
                     result = api.login(email, password)
+                    print(result)
+                    st.write(result)
                 if result:
                     st.session_state["token"] = result["access_token"]
                     st.session_state["rol"] = result["rol"]
                     st.session_state["user_id"] = result["user_id"]
+                    cohorte = result.get("cohorte")
+
+                    st.session_state["cohorte_nombre"] = (
+                        cohorte["nombre"]
+                        if cohorte
+                        else None
+                    )
+                    
                     st.success("✅ Sesión iniciada")
                     st.rerun()
 

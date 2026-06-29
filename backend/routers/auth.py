@@ -7,6 +7,7 @@ Router de autenticación:
 """
 from datetime import datetime, timezone, timedelta
 
+from backend.services.auth_service import AuthService
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -89,15 +90,39 @@ def login(
         if cohorte and cohorte.estado == EstadoCohorte.FINALIZADA and not cohorte.permitir_extension:
             raise HTTPException(status_code=403, detail="Cohorte finalizada. Acceso bloqueado.")
 
+    
     # Actualizar last_login
     user.last_login = datetime.now(timezone.utc)
-    token = create_access_token({"sub": str(user.id), "rol": user.rol.value})
-    registrar(db, "LOGIN", usuario_id=user.id, ip=_get_ip(request))
+
+    token = create_access_token(
+        {
+            "sub": str(user.id),
+            "rol": user.rol.value,
+        }
+    )
+
+    cohorte = AuthService.build_login_cohort(
+        db,
+        user,
+    )
+
+    registrar(
+        db,
+        "LOGIN",
+        usuario_id=user.id,
+        ip=_get_ip(request),
+    )
+
     db.commit()
 
-    return TokenResponse(access_token=token, token_type="bearer", rol=user.rol, user_id=user.id)
-
-
+    return TokenResponse(
+        access_token=token,
+        token_type="bearer",
+        rol=user.rol,
+        user_id=user.id,
+        cohorte=cohorte,
+    )
+    
 @router.post("/activate")
 def activate_account(payload: ActivateAccountRequest, db: Session = Depends(get_db)):
     """

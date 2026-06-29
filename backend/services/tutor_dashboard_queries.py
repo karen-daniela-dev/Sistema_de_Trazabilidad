@@ -37,7 +37,7 @@ from backend.models.aprendiz_perfil import AprendizPerfil
 from backend.models.aplicacion import Aplicacion
 from backend.models.entrevista import Entrevista
 from backend.models.cohorte import Cohorte
-from backend.models.enums import RolEnum
+from backend.models.enums import EstadoCohorte, RolEnum
 
 
 class TutorDashboardQueries:
@@ -103,6 +103,7 @@ class TutorDashboardQueries:
             )
             .filter(
                 AprendizPerfil.tutor_id == tutor_id,
+                Cohorte.estado == EstadoCohorte.ACTIVA,
             )
             .distinct()
             .first()

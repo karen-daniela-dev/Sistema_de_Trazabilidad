@@ -85,6 +85,7 @@ class TutorDashboardService:
         No calcula semáforos ni KPIs individuales.
         """
 
+
         perfiles = TutorDashboardQueries.get_apprentices(
             db,
             tutor_id,
@@ -139,6 +140,9 @@ class TutorDashboardService:
             db,
             tutor_id,
         )
+        print("Tutorrrr:", tutor_id)
+        print("Cohorte:", cohorte.id if cohorte else None)
+        print("Meta:", cohorte.meta_contratacion if cohorte else None)
 
         porcentaje_meta = (
             cohorte.meta_contratacion

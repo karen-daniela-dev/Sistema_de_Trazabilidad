@@ -27,12 +27,16 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+class CohorteLoginResponse(BaseModel):
+    id: uuid.UUID
+    nombre: str
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     rol: RolEnum
     user_id: uuid.UUID
+    cohorte: CohorteLoginResponse | None = None
 
 
 class ActivateAccountRequest(BaseModel):
