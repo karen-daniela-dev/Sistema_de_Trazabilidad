@@ -30,7 +30,7 @@ from frontend.components.cohorte_selector import (
     render as cohorte_selector,
 )
 
-from frontend.components.dashboard_state_coor import (
+from frontend.components.dashboard_selection_state import (
     get_cohorte,
     get_tutor,
     set_tutor,
@@ -517,7 +517,7 @@ def show():
 # Aprendiz Selector
 # ============================================================
 
-from frontend.components.dashboard_state_coor import (
+from frontend.components.dashboard_selection_state import (
     get_aprendiz,
     set_aprendiz,
 )

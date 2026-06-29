@@ -2,7 +2,7 @@
 Panel del Aprendiz — Dashboard completo con visualizaciones dinámicas Plotly.
 """
 import streamlit as st
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 import sys, os
 import pandas as pd
 import plotly.graph_objects as go
@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
 from frontend import api_client as api
 from frontend.components.ui import (
-    kpi_card, mostrar_semaforo, panel_alertas, estado_badge
+    kpi_card, panel_alertas
 )
 from frontend.pages.aprendiz.entrevista_form import show_form as entrevista_form
 from frontend.pages.aprendiz.fallas_tab import show as fallas_show

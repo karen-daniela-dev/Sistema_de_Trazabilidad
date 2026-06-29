@@ -1,7 +1,6 @@
 """
 Tests de seguridad — RBAC, JWT, inyección, acceso cruzado.
 """
-import pytest
 from backend.tests.conftest import auth_headers, make_usuario
 from backend.models.enums import RolEnum
 

@@ -26,7 +26,7 @@ from backend.models.entrevista import Entrevista
 from backend.models.enums import (
     RolEnum, EstadoUsuario, EstadoCohorte, ModalidadApp,
     OrigenApp, EstadoApp, TipoEntrevista, ModalidadEntrevista,
-    FallaEnum, PercepcionGrupal, RespuestaEmpresa,
+    PercepcionGrupal, RespuestaEmpresa,
 )
 from backend.utils.security import hash_password
 from backend.services.cohort_engine import fecha_fin_desde_inicio

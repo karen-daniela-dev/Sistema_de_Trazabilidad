@@ -2,7 +2,6 @@
 Tests unitarios — Motor de estados de aplicación.
 No requieren BD — solo lógica pura.
 """
-import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 

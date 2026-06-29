@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.dependencies.auth import (
-    require_coordinador, require_any, get_current_user, require_aprendiz
+    require_coordinador, require_any, require_aprendiz
 )
 from backend.middleware.audit_middleware import registrar
 from backend.models.enums import EstadoUsuario, RolEnum

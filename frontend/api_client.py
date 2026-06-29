@@ -160,16 +160,6 @@ def get_kpis_personal():
     return _handle_response(r)
 
 
-def get_kpis_grupo():
-    r = requests.get(f"{API_BASE}/kpis/grupo", headers=_headers(), timeout=TIMEOUT)
-    return _handle_response(r)
-
-
-def get_kpis_globales():
-    r = requests.get(f"{API_BASE}/kpis/global", headers=_headers(), timeout=TIMEOUT)
-    return _handle_response(r)
-
-
 def get_alertas():
     r = requests.get(f"{API_BASE}/kpis/alertas", headers=_headers(), timeout=TIMEOUT)
     return _handle_response(r) or []
@@ -182,11 +172,6 @@ def marcar_alerta_leida(alerta_id: str):
 
 
 # ---------------------refactorizacion 
-def get_kpis_cohortes():
-    r = requests.get(f"{API_BASE}/kpis/cohortes", headers=_headers(), timeout=TIMEOUT)
-    return _handle_response(r) or []
-
-
 def get_kpis_detalle_cohorte(cohorte_id: str):
     r = requests.get(
         f"{API_BASE}/kpis/cohorte/{cohorte_id}",
@@ -197,16 +182,6 @@ def get_kpis_detalle_cohorte(cohorte_id: str):
 
 
 
-
-def get_kpis_tutores():
-    r = requests.get(f"{API_BASE}/kpis/tutores", headers=_headers(), timeout=TIMEOUT)
-    return _handle_response(r)
-
-
-def get_kpi_tutor(tutor_id: str):
-    r = requests.get(f"{API_BASE}/kpis/tutores/{tutor_id}",
-                     headers=_headers(), timeout=TIMEOUT)
-    return _handle_response(r)
 
 def get_kpis_tutores():
     r = requests.get(f"{API_BASE}/kpis/tutores", headers=_headers(), timeout=TIMEOUT)

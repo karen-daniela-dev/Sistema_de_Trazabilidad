@@ -5,7 +5,7 @@ Router de autenticación:
 - POST /auth/activate     → activación de tutor (establece contraseña)
 - GET  /auth/me           → usuario actual
 """
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from backend.services.auth_service import AuthService
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -17,13 +17,12 @@ from backend.dependencies.auth import get_current_user
 from backend.middleware.audit_middleware import registrar
 from backend.models.enums import EstadoUsuario, RolEnum, EstadoCohorte
 from backend.models.usuario import Usuario
-from backend.models.aprendiz_perfil import AprendizPerfil
 from backend.schemas import (
-    LoginRequest, TokenResponse, RegistroAprendizRequest,
+    TokenResponse, RegistroAprendizRequest,
     ActivateAccountRequest, UsuarioResponse,
 )
 from backend.utils.security import (
-    hash_password, verify_password, create_access_token, validate_password_strength,
+    hash_password, verify_password, create_access_token,
 )
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])

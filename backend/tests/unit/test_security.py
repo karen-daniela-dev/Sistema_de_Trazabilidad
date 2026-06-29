@@ -2,7 +2,6 @@
 Tests unitarios — Seguridad: contraseñas y JWT.
 """
 import pytest
-import time
 from datetime import timedelta
 
 from backend.utils.security import (

@@ -1,7 +1,6 @@
 """
 Tests de integración — Aplicaciones y flujo del motor de estados.
 """
-import pytest
 from datetime import datetime, timezone, timedelta
 from backend.tests.conftest import auth_headers, make_usuario, make_cohorte, make_perfil
 from backend.models.enums import RolEnum, EstadoCohorte

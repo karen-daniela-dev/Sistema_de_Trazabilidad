@@ -9,7 +9,6 @@ os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["DATABASE_URL_TEST"] = "sqlite:///:memory:"
 
 # Parchear ANTES de que cualquier módulo del backend se importe
-from unittest.mock import MagicMock, patch
 import sys
 
 # Remover módulos cacheados del backend si ya fueron importados

@@ -1,7 +1,6 @@
 """
 Tests de integración — Endpoints de autenticación.
 """
-import pytest
 from backend.tests.conftest import make_usuario, auth_headers
 from backend.models.enums import RolEnum, EstadoUsuario
 

@@ -53,7 +53,6 @@ from backend.models.usuario import Usuario
 from backend.models.aprendiz_perfil import AprendizPerfil
 from backend.utils.pagination import (
     PaginationParams,
-    Page,
 )
 
 

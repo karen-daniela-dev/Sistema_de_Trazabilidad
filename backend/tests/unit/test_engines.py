@@ -1,7 +1,6 @@
 """
 Tests unitarios — Motores de alertas, semáforos y ciclo de vida de cohorte.
 """
-import pytest
 from datetime import date, datetime, timedelta, timezone
 from unittest.mock import MagicMock
 

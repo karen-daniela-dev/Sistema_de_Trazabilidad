@@ -8,14 +8,12 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.dependencies.auth import (
-    get_current_user, require_coordinador, require_tutor, require_aprendiz, require_any
+    require_coordinador, require_tutor, require_aprendiz, require_any
 )
 from backend.models.usuario import Usuario
 from backend.models.enums import RolEnum
-from backend.services import kpi_service, alert_engine
-from backend.models.aprendiz_perfil import AprendizPerfil
+from backend.services import kpi_service
 from backend.models.alerta import Alerta
-from backend.models.cohorte import Cohorte
 from backend.schemas import AlertaResponse
 from backend.services.query_service import get_tutor_aprendiz_ids
 

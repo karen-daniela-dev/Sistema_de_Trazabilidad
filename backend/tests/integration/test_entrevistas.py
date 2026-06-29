@@ -1,7 +1,6 @@
 """
 Tests de integración — Entrevistas y validaciones condicionales.
 """
-import pytest
 from datetime import datetime, timezone, timedelta
 from backend.tests.conftest import auth_headers
 

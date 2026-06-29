@@ -1,11 +1,7 @@
 #auth_service.py
-from uuid import UUID
-
 from sqlalchemy.orm import Session
 
 from backend.models.usuario import Usuario
-from backend.models.aprendiz_perfil import AprendizPerfil
-from backend.models.cohorte import Cohorte
 from backend.models.enums import RolEnum
 from backend.schemas import CohorteLoginResponse
 from backend.services.tutor_dashboard_queries import (

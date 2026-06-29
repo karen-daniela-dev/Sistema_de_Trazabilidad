@@ -22,9 +22,7 @@ from backend.models.aprendiz_perfil import AprendizPerfil
 from backend.models.cohorte import Cohorte
 from backend.models.entrevista import Entrevista
 from backend.models.usuario import Usuario
-from backend.models.enums import EstadoApp, RolEnum
 from backend.services.alert_engine import (
-    
     semaforo_actividad,
     semaforo_progreso,
 )

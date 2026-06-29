@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
-from typing import Optional, List, Any
+from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, field_validator, model_validator
 
@@ -16,7 +16,6 @@ from backend.models.enums import (
     ModalidadApp, OrigenApp, EstadoApp,
     TipoEntrevista, ModalidadEntrevista, PercepcionGrupal,
     FallaEnum, TemaTecnico, RespuestaEmpresa,
-    SUBFALLAS_POR_FALLA,
 )
 from backend.utils.security import validate_password_strength
 

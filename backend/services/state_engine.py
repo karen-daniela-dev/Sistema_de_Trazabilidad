@@ -3,7 +3,7 @@ state_engine.py
 Motor de estados de aplicación.
 La lógica de transición vive SOLO aquí — nunca en routers ni modelos.
 """
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from typing import Sequence
 
 from backend.models.aplicacion import Aplicacion

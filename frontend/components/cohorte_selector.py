@@ -25,7 +25,7 @@ from datetime import date
 import streamlit as st
 
 from frontend import api_client as api
-from frontend.components import dashboard_state_coor
+from frontend.components import dashboard_selection_state
 
 
 # ======================================================================
@@ -106,13 +106,20 @@ def render() -> dict | None:
     Retorna siempre la cohorte activa.
     """
 
-    cohortes = api.get_cohortes()
+    response = api.get_cohortes()
+
+    cohortes = response.get(
+        "items",
+        [],
+    )
 
     if not cohortes:
 
         st.warning("No existen cohortes registradas.")
 
         return None
+    # st.write(type(cohortes))
+    # st.write(cohortes)
 
     cohortes = sorted(
         cohortes,
@@ -125,7 +132,7 @@ def render() -> dict | None:
         for c in cohortes
     ]
 
-    actual = dashboard_state_coor.get_cohorte()
+    actual = dashboard_selection_state.get_cohorte()
 
     default_index = 0
 
@@ -151,7 +158,7 @@ def render() -> dict | None:
 
     seleccionada = cohortes[selected_index]
 
-    dashboard_state_coor.set_cohorte(seleccionada)
+    dashboard_selection_state.set_cohorte(seleccionada)
 
     _render_resume(seleccionada)
 

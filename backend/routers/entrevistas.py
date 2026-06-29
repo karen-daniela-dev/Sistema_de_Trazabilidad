@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.dependencies.auth import get_current_user, require_any, require_aprendiz
+from backend.dependencies.auth import require_any, require_aprendiz
 from backend.middleware.audit_middleware import registrar
 from backend.models.aplicacion import Aplicacion
 from backend.models.aprendiz_perfil import AprendizPerfil
