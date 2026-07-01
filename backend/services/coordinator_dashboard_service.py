@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from uuid import UUID
 from backend.models import usuario
+from backend.services.tutor_dashboard_queries import TutorDashboardQueries
 from backend.services.tutor_score import build_tutor_score
 
 from backend.services.user_helpers import display_name
@@ -32,6 +33,8 @@ from backend.schemas.coordinator_dashboard import (
 
 from backend.schemas.tutor_dashboard import (
     GoalProgressResponse,
+    TutorApprenticeDetailResponse,
+    TutorFailureSummaryResponse,
 )
 
 from backend.services.coordinator_dashboard_queries import (
@@ -303,7 +306,7 @@ class CoordinatorDashboardService:
             db=db,
 
             tutor_id=tutor_id,
-            cohorte_id=cohorte_id,
+            
 
             pagination=pagination,
         )
@@ -336,3 +339,52 @@ class CoordinatorDashboardService:
 
             aprendices=page,
         )
+    @staticmethod
+    def get_apprentice_detail(
+        db: Session,
+        cohorte_id: UUID,
+        aprendiz_id: UUID,
+    ) -> TutorApprenticeDetailResponse:
+
+        perfil = TutorDashboardQueries.get_aprendiz(
+            db,
+            aprendiz_id,
+            cohorte_id=cohorte_id,
+        )
+
+        if perfil is None:
+            raise ValueError(
+                "El aprendiz no pertenece a la cohorte."
+            )
+
+        return TutorDashboardService._build_apprentice_detail(
+            db,
+            perfil,
+        )
+    @staticmethod
+    def get_apprentice_failures(
+        db: Session,
+        cohorte_id: UUID,
+        aprendiz_id: UUID,
+    ) -> TutorFailureSummaryResponse:
+        """
+        Obtiene el resumen de fallas de un aprendiz
+        desde el Dashboard del Coordinador.
+        """
+
+        perfil = TutorDashboardQueries.get_aprendiz(
+            db,
+            aprendiz_id,
+            cohorte_id=cohorte_id,
+        )
+
+        if perfil is None:
+
+            raise ValueError(
+                "El aprendiz no pertenece a la cohorte."
+            )
+
+        return TutorDashboardService._build_failure_summary(
+            db,
+            aprendiz_id,
+        )    

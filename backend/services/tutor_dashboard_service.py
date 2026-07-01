@@ -254,6 +254,94 @@ class TutorDashboardService:
                 progreso_promedio=0,
             ),
         )
+        
+        
+        
+    @staticmethod
+    def _build_apprentice_detail(
+        db: Session,
+        perfil: AprendizPerfil,
+    ) -> TutorApprenticeDetailResponse:
+        """
+        Construye el detalle de un aprendiz a partir
+        de su perfil.
+
+        No realiza validaciones de permisos.
+        """
+
+        aprendiz_id = perfil.usuario_id
+
+        apps_by_user, entrevistas_by_app = (
+            load_apps_and_entrevistas_for_users(
+                db,
+                [aprendiz_id],
+            )
+        )
+
+        aplicaciones = apps_by_user.get(
+            aprendiz_id,
+            [],
+        )
+
+        entrevistas = collect_user_entrevistas(
+            aplicaciones,
+            entrevistas_by_app,
+        )
+
+        kpi = build_user_kpi(
+            aplicaciones,
+            entrevistas,
+        )
+
+        ultima_aplicacion = max(
+            (a.fecha_aplicacion for a in aplicaciones),
+            default=None,
+        )
+
+        ultima_entrevista = max(
+            (e.fecha for e in entrevistas),
+            default=None,
+        )
+
+        usuario = perfil.usuario
+
+        if usuario is None:
+            raise ValueError(
+                "El perfil del aprendiz no tiene un usuario asociado."
+            )
+
+        return TutorApprenticeDetailResponse(
+
+            id=usuario.id,
+
+            nombre=display_name(usuario),
+
+            email=usuario.email,
+
+            telefono=perfil.telefono,
+
+            telefono_emergencia=perfil.telefono_emergencia,
+
+            ciudad=perfil.ciudad,
+
+            actividad=SemaforoEstado(
+                kpi["semaforo_actividad"],
+            ),
+
+            progreso=SemaforoEstado(
+                kpi["semaforo_progreso"],
+            ),
+
+            contratado=kpi["contratado"],
+
+            total_aplicaciones=kpi["total_aplicaciones"],
+
+            total_entrevistas=kpi["total_entrevistas"],
+
+            ultima_aplicacion=ultima_aplicacion,
+
+            ultima_entrevista=ultima_entrevista,
+        )
     # Métodos privados reutilizables
     @staticmethod
     def _calculate_last_activity(
@@ -606,7 +694,7 @@ class TutorDashboardService:
         perfil = TutorDashboardQueries.get_aprendiz(
             db,
             aprendiz_id,
-            tutor_id = tutor_id,
+            tutor_id=tutor_id,
         )
 
         if perfil is None:
@@ -614,81 +702,10 @@ class TutorDashboardService:
                 "El aprendiz no pertenece al tutor."
             )
 
-        apps_by_user, entrevistas_by_app = (
-            load_apps_and_entrevistas_for_users(
-                db,
-                [aprendiz_id],
-            )
+        return TutorDashboardService._build_apprentice_detail(
+            db,
+            perfil,
         )
-
-        aplicaciones = apps_by_user.get(
-            aprendiz_id,
-            [],
-        )
-
-        entrevistas = collect_user_entrevistas(
-            aplicaciones,
-            entrevistas_by_app,
-        )
-
-        kpi = build_user_kpi(
-            aplicaciones,
-            entrevistas,
-        )
-
-        ultima_aplicacion = (
-            max(
-                (a.fecha_aplicacion for a in aplicaciones),
-                default=None,
-            )
-        )
-
-        ultima_entrevista = (
-            max(
-                (e.fecha for e in entrevistas),
-                default=None,
-            )
-        )
-        usuario = perfil.usuario
-
-        if usuario is None:
-            raise ValueError(
-                "El perfil del aprendiz no tiene un usuario asociado."
-            )
-
-        return TutorApprenticeDetailResponse(
-
-            id=usuario.id,
-
-            nombre=display_name(usuario),
-
-            email=perfil.usuario.email,
-
-            telefono=perfil.telefono,
-
-            telefono_emergencia=perfil.telefono_emergencia,
-
-            ciudad=perfil.ciudad,
-
-            actividad=SemaforoEstado(
-                kpi["semaforo_actividad"],
-            ),
-
-            progreso=SemaforoEstado(
-                kpi["semaforo_progreso"],
-            ),
-
-            contratado=kpi["contratado"],
-
-            total_aplicaciones=kpi["total_aplicaciones"],
-
-            total_entrevistas=kpi["total_entrevistas"],
-
-            ultima_aplicacion=ultima_aplicacion,
-
-            ultima_entrevista=ultima_entrevista,
-        )
-            
         
         
 
@@ -837,25 +854,17 @@ class TutorDashboardService:
             total=total,
             params=pagination,
         )
-        
     @staticmethod
-    def get_failure_summary(
+    def _build_failure_summary(
         db: Session,
-        tutor_id: UUID,
         aprendiz_id: UUID,
     ) -> TutorFailureSummaryResponse:
         """
         Construye las tortas de fallas de un aprendiz.
-        """
 
-        if not TutorDashboardQueries.aprendiz_belongs_to_tutor(
-            db,
-            tutor_id,
-            aprendiz_id,
-        ):
-            raise ValueError(
-                "El aprendiz no pertenece al tutor."
-            )
+        No realiza validaciones de permisos.
+        Puede reutilizarse desde distintos dashboards.
+        """
 
         entrevistas = (
             TutorDashboardQueries.get_apprentice_interviews(
@@ -866,7 +875,7 @@ class TutorDashboardService:
 
         if not entrevistas:
 
-            pies = []
+            pies: list[FailurePieResponse] = []
 
             for falla, titulo in FALLAS.items():
 
@@ -903,13 +912,16 @@ class TutorDashboardService:
 
             for entrevista in entrevistas:
 
+                # ------------------------------------------------------
                 # Subfallas
+                # ------------------------------------------------------
 
                 for subfalla in entrevista.subfallas or []:
 
                     categoria = get_falla_from_subfalla(
                         subfalla,
                     )
+
                     if categoria is None:
                         continue
 
@@ -924,13 +936,14 @@ class TutorDashboardService:
                         + 1
                     )
 
+                # ------------------------------------------------------
                 # Temas técnicos
+                # ------------------------------------------------------
 
                 if (
                     falla == "TECNICA"
                     and "TECNICA" in (entrevista.fallas or [])
                 ):
-                    
 
                     for tema in entrevista.temas_tecnicos or []:
 
@@ -941,6 +954,7 @@ class TutorDashboardService:
                             )
                             + 1
                         )
+
             total = sum(
                 contador.values(),
             )
@@ -989,3 +1003,34 @@ class TutorDashboardService:
 
             pies=pies,
         )
+
+
+    @staticmethod
+    def get_failure_summary(
+        db: Session,
+        tutor_id: UUID,
+        aprendiz_id: UUID,
+    ) -> TutorFailureSummaryResponse:
+        """
+        Construye las tortas de fallas de un aprendiz.
+        """
+
+        if not TutorDashboardQueries.aprendiz_belongs_to_tutor(
+            db,
+            tutor_id,
+            aprendiz_id,
+        ):
+            raise ValueError(
+                "El aprendiz no pertenece al tutor."
+            )
+
+        return TutorDashboardService._build_failure_summary(
+            db,
+            aprendiz_id,
+        )
+            
+
+        
+        
+        
+    

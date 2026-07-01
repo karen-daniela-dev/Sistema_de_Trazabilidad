@@ -409,5 +409,35 @@ def get_coordinator_tutor_detail(
         headers=_headers(),
         timeout=TIMEOUT,
     )
+    return _handle_response(r)
+
+def get_coordinator_apprentice(
+    cohorte_id: str,
+    aprendiz_id: str,
+):
+    r = requests.get(
+        f"{API_BASE}/dashboard/coordinator/apprentices/{aprendiz_id}",
+        params={
+            "cohorte_id": cohorte_id,
+        },
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r)
+
+
+def get_coordinator_failures(
+    cohorte_id: str,
+    aprendiz_id: str,
+):
+    r = requests.get(
+        f"{API_BASE}/dashboard/coordinator/apprentices/{aprendiz_id}/failures",
+        params={
+            "cohorte_id": cohorte_id,
+        },
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
 
     return _handle_response(r)

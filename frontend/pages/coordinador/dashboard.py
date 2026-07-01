@@ -85,11 +85,13 @@ def show():
 
         return
 
-    detail = api.get_tutor_apprentice(
+    detail = api.get_coordinator_apprentice(
+        cohorte_id,
         aprendiz_id,
     )
 
-    failures = api.get_tutor_failures(
+    failures = api.get_coordinator_failures(
+        cohorte_id,
         aprendiz_id,
     )
 

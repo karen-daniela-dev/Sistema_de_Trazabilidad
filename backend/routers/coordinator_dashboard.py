@@ -2,6 +2,7 @@
 
 from uuid import UUID
 
+from backend.schemas.tutor_dashboard import TutorApprenticeDetailResponse, TutorFailureSummaryResponse
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -157,4 +158,53 @@ def get_tutor_detail(
         tutor_id=tutor_id,
 
         pagination=pagination,
+    )
+
+@router.get(
+    "/apprentices/{aprendiz_id}",
+    response_model=TutorApprenticeDetailResponse,
+)
+def get_apprentice_detail(
+
+    aprendiz_id: UUID,
+
+    cohorte_id: UUID,
+
+    db: Session = Depends(get_db),
+
+    current_user: Usuario = Depends(require_coordinador),
+
+):
+
+    return CoordinatorDashboardService.get_apprentice_detail(
+
+        db=db,
+
+        cohorte_id=cohorte_id,
+
+        aprendiz_id=aprendiz_id,
+    )
+@router.get(
+    "/apprentices/{aprendiz_id}/failures",
+    response_model=TutorFailureSummaryResponse,
+)
+def get_apprentice_failures(
+
+    aprendiz_id: UUID,
+
+    cohorte_id: UUID,
+
+    db: Session = Depends(get_db),
+
+    current_user: Usuario = Depends(require_coordinador),
+
+):
+
+    return CoordinatorDashboardService.get_apprentice_failures(
+
+        db=db,
+
+        cohorte_id=cohorte_id,
+
+        aprendiz_id=aprendiz_id,
     )
