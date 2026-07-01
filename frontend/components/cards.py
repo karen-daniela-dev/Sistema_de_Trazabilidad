@@ -1,7 +1,7 @@
 """
 components/cards.py
 
-Tarjetas reutilizables para dashboards.
+Tarjetas KPI reutilizables.
 """
 
 from __future__ import annotations
@@ -16,74 +16,44 @@ def kpi_card(
     color: str = "#2563eb",
 ):
     """
-    Tarjeta KPI estándar.
+    Tarjeta KPI utilizando únicamente
+    componentes nativos de Streamlit.
     """
 
-    st.markdown(
-        f"""
-        <div style="
-            background:white;
-            border:1px solid #e5e7eb;
-            border-radius:12px;
-            padding:18px;
-            text-align:center;
-            box-shadow:0 1px 3px rgba(0,0,0,.08);
-        ">
+    with st.container(border=True):
 
-            <div style="
-                font-size:0.85rem;
-                color:#6b7280;
-                margin-bottom:8px;
-            ">
-                {title}
-            </div>
+        st.caption(title)
 
-            <div style="
-                font-size:2rem;
-                font-weight:700;
-                color:{color};
-            ">
-                {value}
-            </div>
+        st.metric(
+            label="",
+            value=value,
+        )
 
-            <div style="
-                color:#9ca3af;
-                font-size:.8rem;
-                margin-top:6px;
-            ">
-                {subtitle}
-            </div>
+        if subtitle:
 
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+            st.caption(subtitle)
 
 
 def kpi_row(
     cards: list[dict],
 ):
     """
-    Renderiza una fila de tarjetas KPI.
+    Renderiza una fila de KPIs.
     """
 
     columns = st.columns(len(cards))
 
-    for col, card in zip(columns, cards):
+    for column, card in zip(columns, cards):
 
-        with col:
+        with column:
 
             kpi_card(
-
                 title=card["title"],
-
                 value=card["value"],
-
                 subtitle=card.get(
                     "subtitle",
                     "",
                 ),
-
                 color=card.get(
                     "color",
                     "#2563eb",

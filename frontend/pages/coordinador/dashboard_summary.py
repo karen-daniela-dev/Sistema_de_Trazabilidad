@@ -12,6 +12,8 @@ from frontend.components.cards import (
     kpi_row,
 )
 
+
+
 from frontend.components.progress import (
     goal_progress,
 )
@@ -25,7 +27,7 @@ def show(
     """
     Renderiza el resumen superior del dashboard.
     """
-
+    st.write(kpi_row.__module__)
     summary = dashboard_loader.load_summary(
         cohorte_id,
     )
