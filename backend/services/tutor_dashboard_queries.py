@@ -113,18 +113,20 @@ class TutorDashboardQueries:
     # Aprendices del tutor
     # ---------------------------------------------------------------------
 
+
+    # ---------------------------------------------------------------------
+    # Aplicaciones de varios aprendices
+    # ---------------------------------------------------------------------
+
     @staticmethod
     def get_apprentices(
         db: Session,
         tutor_id: UUID,
+        cohorte_id: UUID,
     ) -> list[AprendizPerfil]:
         """
-        Obtiene todos los aprendices asignados al tutor.
-
-        Se cargan las relaciones necesarias mediante
-        selectinload para evitar consultas N+1.
-
-        NO carga aplicaciones ni entrevistas.
+        Obtiene los aprendices asignados al tutor
+        dentro de una cohorte.
         """
 
         return (
@@ -135,41 +137,11 @@ class TutorDashboardQueries:
             )
             .filter(
                 AprendizPerfil.tutor_id == tutor_id,
+                AprendizPerfil.cohorte_id == cohorte_id,
             )
             .all()
         )
-
-    # ---------------------------------------------------------------------
-    # Aplicaciones de varios aprendices
-    # ---------------------------------------------------------------------
-
-    @staticmethod
-    def get_applications(
-        db: Session,
-        aprendiz_ids: list[UUID],
-    ) -> list[Aplicacion]:
-        """
-        Recupera todas las aplicaciones
-        pertenecientes a un conjunto de aprendices.
-
-        Se utiliza para construir:
-
-        - resumen
-        - tabla
-        - detalle
-        """
-
-        if not aprendiz_ids:
-            return []
-
-        return (
-            db.query(Aplicacion)
-            .filter(
-                Aplicacion.usuario_id.in_(aprendiz_ids)
-            )
-            .all()
-        )
-        
+            
     # ---------------------------------------------------------------------
     # Entrevistas de varias aplicaciones
     # ---------------------------------------------------------------------

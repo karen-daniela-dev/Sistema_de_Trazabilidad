@@ -331,3 +331,83 @@ def get_tutor_failures(
     )
 
     return _handle_response(r)
+
+# ── Dashboard Coordinador ─────────────────────────────────────────────────────
+
+def get_coordinator_cohortes():
+    r = requests.get(
+        f"{API_BASE}/dashboard/coordinator/cohortes",
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r) or []
+
+
+def get_coordinator_summary(
+    cohorte_id: str,
+):
+    r = requests.get(
+        f"{API_BASE}/dashboard/coordinator/summary",
+        params={
+            "cohorte_id": cohorte_id,
+        },
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r)
+
+
+def get_coordinator_ranking(
+    cohorte_id: str,
+):
+    r = requests.get(
+        f"{API_BASE}/dashboard/coordinator/ranking",
+        params={
+            "cohorte_id": cohorte_id,
+        },
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r) or []
+
+
+def get_coordinator_tutors(
+    cohorte_id: str,
+    page: int = 1,
+    size: int = 20,
+):
+    r = requests.get(
+        f"{API_BASE}/dashboard/coordinator/tutors",
+        params={
+            "cohorte_id": cohorte_id,
+            "page": page,
+            "size": size,
+        },
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r)
+
+
+def get_coordinator_tutor_detail(
+    cohorte_id: str,
+    tutor_id: str,
+    page: int = 1,
+    size: int = 20,
+):
+    r = requests.get(
+        f"{API_BASE}/dashboard/coordinator/tutors/{tutor_id}/apprentices",
+        params={
+            "cohorte_id": cohorte_id,
+            "page": page,
+            "size": size,
+        },
+        headers=_headers(),
+        timeout=TIMEOUT,
+    )
+
+    return _handle_response(r)

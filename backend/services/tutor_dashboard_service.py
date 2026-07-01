@@ -17,7 +17,9 @@ from __future__ import annotations
 from uuid import UUID
 
 from backend.constants.interview_catalog import FALLAS, get_falla_from_subfalla
+from backend.models import usuario
 from backend.services.kpi_helpers import collect_user_entrevistas
+from backend.services.user_helpers import display_name
 from sqlalchemy.orm import Session
 
 from backend.schemas.tutor_dashboard import (
@@ -85,10 +87,41 @@ class TutorDashboardService:
         """
 
 
-        perfiles = TutorDashboardQueries.get_apprentices(
+        cohorte = TutorDashboardQueries.get_tutor_cohorte(
             db,
             tutor_id,
         )
+
+        if cohorte is None:
+
+            return TutorSummaryResponse(
+                goal=GoalProgressResponse(
+                    porcentaje_meta=0,
+                    porcentaje_actual=0,
+                    porcentaje_cumplimiento=0,
+                    total_aprendices=0,
+                    meta_contratados=0,
+                    contratados=0,
+                    faltantes=0,
+                    sobrecumplimiento=0,
+                    meta_alcanzada=False,
+                    sobrecumplida=False,
+                ),
+                cards=SummaryCardsResponse(
+                    total_aprendices=0,
+                    contratados=0,
+                    tasa_contratacion=0,
+                    actividad_promedio=0,
+                    progreso_promedio=0,
+                ),
+            )
+
+        perfiles = TutorDashboardQueries.get_apprentices(
+            db,
+            tutor_id,
+            cohorte.id,
+        ) 
+        #-----       
 
         total_aprendices = len(perfiles)
 
@@ -135,10 +168,7 @@ class TutorDashboardService:
             )
         )
 
-        cohorte = TutorDashboardQueries.get_tutor_cohorte(
-            db,
-            tutor_id,
-        )
+       
         print("Tutorrrr:", tutor_id)
         print("Cohorte:", cohorte.id if cohorte else None)
         print("Meta:", cohorte.meta_contratacion if cohorte else None)
@@ -283,23 +313,7 @@ class TutorDashboardService:
             SemaforoEstado.ROJO,
         )
    
-    @staticmethod
-    def _display_name(
-        usuario: Usuario,
-    ) -> str:
-        """
-        Obtiene el nombre mostrado en el Dashboard.
-
-        Temporalmente utiliza el email del usuario.
-        Cuando el sistema implemente nombres y apellidos,
-        este método será el único punto que deberá modificarse.
-        """
-
-        # TODO:
-        # Reemplazar por nombres y apellidos cuando
-        # el perfil del usuario los implemente.
-
-        return usuario.email.split("@")[0]
+    
     @staticmethod
     def _build_apprentice_row(
         perfil: AprendizPerfil,
@@ -330,9 +344,8 @@ class TutorDashboardService:
 
             id=usuario.id,
 
-            nombre=TutorDashboardService._display_name(
-                usuario,
-            ),
+            nombre=display_name(usuario),
+            
 
             email=usuario.email,
 
@@ -461,11 +474,24 @@ class TutorDashboardService:
         """
         Obtiene la tabla principal del Dashboard del Tutor.
         """
+        cohorte = TutorDashboardQueries.get_tutor_cohorte(
+            db,
+            tutor_id,
+        )
+
+        if cohorte is None:
+
+            return TutorDashboardService._paginate_rows(
+                [],
+                pagination,
+            )
 
         perfiles = TutorDashboardQueries.get_apprentices(
             db,
             tutor_id,
+            cohorte.id,
         )
+       
 
         usuarios_ids = [
             perfil.usuario_id
@@ -623,14 +649,18 @@ class TutorDashboardService:
                 default=None,
             )
         )
+        usuario = perfil.usuario
+
+        if usuario is None:
+            raise ValueError(
+                "El perfil del aprendiz no tiene un usuario asociado."
+            )
 
         return TutorApprenticeDetailResponse(
 
-            id=perfil.usuario.id,
+            id=usuario.id,
 
-            nombre=TutorDashboardService._display_name(
-                perfil.usuario,
-            ),
+            nombre=display_name(usuario),
 
             email=perfil.usuario.email,
 

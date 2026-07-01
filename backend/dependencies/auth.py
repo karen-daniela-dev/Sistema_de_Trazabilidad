@@ -1,4 +1,5 @@
 """
+backend/dependencies/auth.py
 Dependencias FastAPI — inyección de sesión DB y usuario autenticado.
 """
 from fastapi import Depends, HTTPException, status

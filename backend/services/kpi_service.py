@@ -140,33 +140,6 @@ def kpis_grupo(db: Session, tutor_id: UUID) -> dict:
     }
 
 
-def _build_tutor_score(grupo: dict) -> dict:
-    """
-    Score ponderado para ranking de tutores.
-
-    Fórmula:
-    - contratados → 50%
-    - progreso verde → 30%
-    - actividad verde → 20%
-    """
-    total = max(grupo["total_aprendices"], 1)
-
-    contratados = grupo["resumen"]["contratados"]
-    actividad_verde = grupo["resumen"]["actividad"]["GREEN"]
-    progreso_verde = grupo["resumen"]["progreso"]["GREEN"]
-
-    score = (
-        (contratados / total) * 50
-        + (progreso_verde / total) * 30
-        + (actividad_verde / total) * 20
-    )
-
-    return {
-        "contratados": contratados,
-        "actividad_verde": actividad_verde,
-        "progreso_verde": progreso_verde,
-        "score": round(score, 2),
-    }
 
 # ── KPIs globales (COORDINADOR) ───────────────────────────────────────────────
 

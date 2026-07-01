@@ -1,4 +1,5 @@
 """
+backend/main.py
 Punto de entrada FastAPI.
 Configura CORS, rate limiting, routers y lifespan.
 """
@@ -18,7 +19,7 @@ from backend.config import settings
 from backend.database import create_all_tables
 from backend.services.cohort_engine import sincronizar_estados_cohortes
 
-from backend.routers import auth, usuarios, cohortes, aplicaciones, entrevistas, kpis, tutor_dashboard
+from backend.routers import auth, usuarios, cohortes, aplicaciones, entrevistas, kpis, tutor_dashboard, coordinator_dashboard
 
 logging.basicConfig(
     level=logging.DEBUG if settings.DEBUG else logging.INFO,
@@ -108,6 +109,7 @@ app.include_router(aplicaciones.router)
 app.include_router(entrevistas.router)
 app.include_router(kpis.router)
 app.include_router(tutor_dashboard.router)
+app.include_router(coordinator_dashboard.router)
 
 
 

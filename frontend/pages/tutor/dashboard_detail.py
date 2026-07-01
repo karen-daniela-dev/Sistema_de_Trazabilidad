@@ -1,15 +1,19 @@
 """
-frontend/pages/tutor
-Información general del aprendiz seleccionado por el tutor.
+frontend/pages/tutor/dashboard_detail.py
+
+Información general del aprendiz seleccionado.
 """
 
 from __future__ import annotations
 
 import streamlit as st
 
+from frontend.components.ui import mostrar_semaforo
+
 
 def show(
     detail: dict,
+    compact: bool = False,
 ) -> None:
     """
     Muestra la información principal
@@ -25,23 +29,25 @@ def show(
         f"**{detail['nombre']}**"
     )
 
-    st.caption(
-        detail["email"]
-    )
+    if not compact:
 
-    c1, c2 = st.columns(2)
-
-    with c1:
-
-        st.write(
-            f"📱 {detail.get('telefono') or '-'}"
+        st.caption(
+            detail["email"]
         )
 
-    with c2:
+        c1, c2 = st.columns(2)
 
-        st.write(
-            f"☎️ {detail.get('telefono_emergencia') or '-'}"
-        )
+        with c1:
+
+            st.write(
+                f"📱 {detail.get('telefono') or '-'}"
+            )
+
+        with c2:
+
+            st.write(
+                f"☎️ {detail.get('telefono_emergencia') or '-'}"
+            )
 
     c1, c2 = st.columns(2)
 
@@ -54,5 +60,21 @@ def show(
         "Entrevistas",
         detail["total_entrevistas"],
     )
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+
+        mostrar_semaforo(
+            detail["actividad"],
+            "Actividad",
+        )
+
+    with c2:
+
+        mostrar_semaforo(
+            detail["progreso"],
+            "Progreso",
+        )
 
     st.divider()

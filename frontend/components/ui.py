@@ -1,4 +1,5 @@
 """
+forntend/components/ui.py
 Componentes UI reutilizables — usados en todas las páginas.
 """
 import streamlit as st

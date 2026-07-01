@@ -1,5 +1,5 @@
 """
-cohorte_selector.py
+frontend/components/cohorte_selector.py
 
 Selector maestro de Cohortes.
 

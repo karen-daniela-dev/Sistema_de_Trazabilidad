@@ -1,5 +1,5 @@
 """
-dashboard_state.py
+dashboard_selection_state.py
 
 Estado centralizado del Dashboard del Coordinador.
 
