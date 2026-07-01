@@ -27,13 +27,26 @@ def show(
     """
     Renderiza el resumen superior del dashboard.
     """
-    st.write(kpi_row.__module__)
+    #st.write(kpi_row.__module__)
     summary = dashboard_loader.load_summary(
         cohorte_id,
     )
 
     if summary is None:
         return
+
+    st.markdown("### Cumplimiento de la meta")
+
+    goal_progress(
+
+        porcentaje=summary["goal"]["porcentaje_cumplimiento"],
+
+        actual=summary["goal"]["contratados"],
+
+        meta=summary["goal"]["meta_contratados"],
+
+        faltantes=summary["goal"]["faltantes"],
+    )
 
     cards = [
 
@@ -64,15 +77,3 @@ def show(
         cards,
     )
 
-    st.markdown("### Cumplimiento de la meta")
-
-    goal_progress(
-
-        porcentaje=summary["goal"]["porcentaje_cumplimiento"],
-
-        actual=summary["goal"]["contratados"],
-
-        meta=summary["goal"]["meta_contratados"],
-
-        faltantes=summary["goal"]["faltantes"],
-    )

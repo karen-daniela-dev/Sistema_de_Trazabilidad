@@ -187,9 +187,9 @@ def show(
         )
 
         return
-    st.write(detail["nombre"])
-    st.write(len(rows))
-    st.write(rows[:3])
+    # st.write(detail["nombre"])
+    # st.write(len(rows))
+    # st.write(rows[:3])
 
     dataframe = _prepare_dataframe(
         rows,
