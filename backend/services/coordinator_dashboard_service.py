@@ -105,7 +105,11 @@ class CoordinatorDashboardService:
             total - contratados,
         )
 
-        meta = row.meta_contratacion or 0
+        porcentaje_meta = row.meta_contratacion or 0
+
+        meta_contratados = round(
+            total * porcentaje_meta / 100
+        )
 
         porcentaje_actual = (
             (contratados / total) * 100
@@ -114,26 +118,26 @@ class CoordinatorDashboardService:
         )
 
         porcentaje_cumplimiento = (
-            (contratados / meta) * 100
-            if meta
+            (contratados / meta_contratados) * 100
+            if meta_contratados
             else 0
         )
 
         faltantes = max(
             0,
-            meta - contratados,
+            meta_contratados - contratados,
         )
 
         sobrecumplimiento = max(
             0,
-            contratados - meta,
+            contratados - meta_contratados,
         )
 
         return CoordinatorSummaryResponse(
 
             goal=GoalProgressResponse(
 
-                porcentaje_meta=100,
+                porcentaje_meta= porcentaje_meta,
 
                 porcentaje_actual=round(
                     porcentaje_actual,
@@ -147,7 +151,7 @@ class CoordinatorDashboardService:
 
                 total_aprendices=total,
 
-                meta_contratados=meta,
+                meta_contratados= meta_contratados,
 
                 contratados=contratados,
 
@@ -155,7 +159,7 @@ class CoordinatorDashboardService:
 
                 sobrecumplimiento=sobrecumplimiento,
 
-                meta_alcanzada=contratados >= meta,
+                meta_alcanzada=contratados >= meta_contratados,
 
                 sobrecumplida=sobrecumplimiento > 0,
             ),
