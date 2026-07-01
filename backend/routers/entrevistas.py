@@ -18,7 +18,7 @@ from backend.schemas import EntrevistaCreate, EntrevistaResponse
 from backend.services.query_service import paginate_query
 from backend.services.state_engine import aplicar_estado
 from backend.utils.pagination import PaginationParams
-
+#backend/routers/entrevistas.py
 router = APIRouter(prefix="/entrevistas", tags=["Entrevistas"])
 
 

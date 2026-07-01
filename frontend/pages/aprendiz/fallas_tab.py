@@ -1,4 +1,5 @@
 """
+frontend/pages/aprendiz/fallas_tab.py
 Tab de fallas — 4 tortas + selectbox para drill-down confiable.
 """
 from collections import defaultdict
@@ -47,6 +48,11 @@ def _construir_datos(apps, entrevistas_por_app):
                         subfallas_por_falla[falla][subfalla] += 1
                 else:
                     subfallas_por_falla[falla]["Sin subfalla especificada"] += 1
+
+                # Agregar también los temas técnicos a la torta de Técnica
+                if falla == "TECNICA":
+                    for tema in (entrevista.get("temas_tecnicos") or []):
+                        subfallas_por_falla[falla][tema] += 1
 
     for falla_key in datos:
         datos[falla_key].sort(key=lambda item: item["fecha_sort"], reverse=True)
