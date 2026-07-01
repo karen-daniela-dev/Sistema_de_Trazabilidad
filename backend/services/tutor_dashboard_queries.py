@@ -182,17 +182,18 @@ class TutorDashboardQueries:
     def get_aprendiz(
         db: Session,
         aprendiz_id: UUID,
-        tutor_id: UUID,
+        *,
+        tutor_id: UUID | None = None,
+        cohorte_id: UUID | None = None,
     ) -> AprendizPerfil | None:
         """
-        Recupera un aprendiz verificando
-        que pertenezca al tutor autenticado.
+        Recupera un aprendiz aplicando el filtro
+        de seguridad correspondiente.
 
-        Evita que un tutor consulte
-        información de otro tutor.
+        Puede validarse por tutor o por cohorte.
         """
 
-        return (
+        query = (
             db.query(AprendizPerfil)
             .options(
                 selectinload(AprendizPerfil.usuario),
@@ -200,10 +201,22 @@ class TutorDashboardQueries:
             )
             .filter(
                 AprendizPerfil.usuario_id == aprendiz_id,
+            )
+        )
+
+        if tutor_id is not None:
+
+            query = query.filter(
                 AprendizPerfil.tutor_id == tutor_id,
             )
-            .first()
-        )
+
+        if cohorte_id is not None:
+
+            query = query.filter(
+                AprendizPerfil.cohorte_id == cohorte_id,
+            )
+
+        return query.first()
 
     # ---------------------------------------------------------------------
     # Aplicaciones de un aprendiz

@@ -606,7 +606,7 @@ class TutorDashboardService:
         perfil = TutorDashboardQueries.get_aprendiz(
             db,
             aprendiz_id,
-            tutor_id,
+            tutor_id = tutor_id,
         )
 
         if perfil is None:

@@ -303,6 +303,7 @@ class CoordinatorDashboardService:
             db=db,
 
             tutor_id=tutor_id,
+            cohorte_id=cohorte_id,
 
             pagination=pagination,
         )
